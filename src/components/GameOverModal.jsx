@@ -40,6 +40,12 @@ export default function GameOverModal({
           title: 'Draw!',
           subtitle: 'by agreement'
         };
+      case 'abandoned':
+        return {
+          emoji: '📡',
+          title: 'Game Abandoned',
+          subtitle: 'connection lost'
+        };
       default:
         return null;
     }

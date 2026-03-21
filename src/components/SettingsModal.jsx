@@ -6,7 +6,10 @@ export default function SettingsModal({
   blackName,
   onWhiteNameChange,
   onBlackNameChange,
-  onResetNames
+  onResetNames,
+  canEditWhite = true,
+  canEditBlack = true,
+  showReset = true
 }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[9998] pointer-events-none px-4">
@@ -43,10 +46,12 @@ export default function SettingsModal({
                 type="text"
                 value={whiteName}
                 onChange={(e) => onWhiteNameChange(e.target.value)}
+                disabled={!canEditWhite}
                 className="w-full rounded-lg px-3 py-2 bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="White"
                 maxLength={24}
               />
+              {!canEditWhite && <p className="text-[11px] text-white/60 mt-1">Locked: controlled by White player</p>}
             </div>
             <div>
               <label className={`${theme.textSecondary} text-xs block mb-1`}>Black Player Name</label>
@@ -54,18 +59,22 @@ export default function SettingsModal({
                 type="text"
                 value={blackName}
                 onChange={(e) => onBlackNameChange(e.target.value)}
+                disabled={!canEditBlack}
                 className="w-full rounded-lg px-3 py-2 bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Black"
                 maxLength={24}
               />
+              {!canEditBlack && <p className="text-[11px] text-white/60 mt-1">Locked: controlled by Black player</p>}
             </div>
 
-            <button
-              onClick={onResetNames}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
-            >
-              Reset Names
-            </button>
+            {showReset && (
+              <button
+                onClick={onResetNames}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+              >
+                Reset Names
+              </button>
+            )}
           </div>
         </div>
 

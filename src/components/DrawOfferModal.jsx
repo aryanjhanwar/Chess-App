@@ -1,8 +1,9 @@
 import { theme } from '../constants/theme';
 
-export default function DrawOfferModal({ currentTurn, onAccept, onDecline }) {
-  const offeringPlayer = currentTurn === 'w' ? 'White' : 'Black';
-  const respondingPlayer = currentTurn === 'w' ? 'Black' : 'White';
+export default function DrawOfferModal({ currentTurn, offeringSide, onAccept, onDecline }) {
+  const offerSide = offeringSide || currentTurn;
+  const offeringPlayer = offerSide === 'w' ? 'White' : 'Black';
+  const respondingPlayer = offerSide === 'w' ? 'Black' : 'White';
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm z-50 px-4">

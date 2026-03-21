@@ -1,0 +1,49 @@
+Great base is already done. If you want to make this app meaningfully better, prioritize features in this order:
+
+Online multiplayer (highest impact)
+Real-time match play with rooms/invites
+Reconnect handling if network drops
+Basic anti-cheat guards (server-side move validation)
+Accounts + game history
+Login (Google/GitHub/email)
+Save completed games to profile
+Personal stats: win rate, average accuracy, time usage
+Computer play depth improvements
+Add opening book for first 8-12 moves
+Add “adaptive difficulty” mode that scales with user strength
+Add move quality feedback (best/inaccuracy/mistake/blunder)
+Analysis board mode
+Post-game deep analysis with best lines
+“Why this move?” explanations
+Mistake browser (jump to critical positions)
+UX polish for mobile-first play
+One-tap quick rematch
+Sticky mini-controls while scrolling moves
+Haptics/vibration on move/check (optional toggle)
+Settings expansion
+Board themes (wood, tournament, high contrast)
+Piece sets (classic/modern/minimal)
+Sound toggles + volume sliders
+Animations speed toggle / low-motion mode
+Accessibility upgrades
+Full keyboard navigation
+Screen-reader labels for board and moves
+Color-blind friendly move/check highlights
+Competitive modes
+Puzzle mode (mate in 1/2/3, tactics)
+Daily challenge puzzle streak
+Blitz ladder/rating system
+Game quality tools
+Draw rules detection upgrades (threefold, 50-move clarity in UI)
+Premoves vs computer (optional)
+Undo in friendly mode only
+Engineering quality (important before scale)
+Add automated tests for move legality and edge cases
+Add end-to-end tests for game flow
+Add CI checks (build + lint + tests) on every push
+If you want, I can give you a practical “next 2-week plan” with exact feature scope so you ship fast without breaking stability.
+
+GPT-5.3-Codex • 1x
+
+and like when the host starts the game only then the game starts but both person adn the host can request draw to another person and can edit only thier names in setting + if ones connect rgets lost the game get abondend 
+automaticallyt

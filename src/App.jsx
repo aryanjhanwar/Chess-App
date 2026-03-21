@@ -16,8 +16,11 @@ import DrawOfferModal from './components/DrawOfferModal'
 import SettingsModal from './components/SettingsModal'
 import PlayerCard from './components/PlayerCard'
 import EvaluationBar from './components/EvaluationBar'
+import ModeSelectScreen from './components/ModeSelectScreen'
+import MultiplayerLobbyScreen from './components/MultiplayerLobbyScreen'
 import { initBitboardEngine } from './engine/index.js'
 import { useStockfish } from './hooks/useStockfish'
+import { useP2PGame } from './hooks/useP2PGame'
 import { getDifficultySettings } from './utils/stockfishUtils'
 
 function App() {
@@ -109,9 +112,16 @@ function App() {
   const [showGameOverUI, setShowGameOverUI] = useState(false);
   const [currentPGN, setCurrentPGN] = useState('');
   const [showDrawOffer, setShowDrawOffer] = useState(false);
+  const [incomingDrawOfferSide, setIncomingDrawOfferSide] = useState(null);
+  const [multiplayerNotice, setMultiplayerNotice] = useState('');
   const [isBoardFlipped, setIsBoardFlipped] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [playerNames, setPlayerNames] = useState({ white: 'White', black: 'Black' });
+  const [entryMode, setEntryMode] = useState(null); // null | 'local' | 'multiplayer'
+  const [isMultiplayerGame, setIsMultiplayerGame] = useState(false);
+  const [multiplayerSide, setMultiplayerSide] = useState('w');
+  const [isMultiplayerStarted, setIsMultiplayerStarted] = useState(false);
+  const remoteApplyingMoveRef = useRef(false);
 
   // Game mode & computer opponent
   const [gameMode, setGameMode] = useState('human');
@@ -134,6 +144,7 @@ function App() {
 
   // Initialize Stockfish
   const stockfish = useStockfish();
+  const p2p = useP2PGame();
 
   // Wire timer hook
   useChessTimer({
@@ -220,6 +231,9 @@ function App() {
     // Block human input when it's the computer's turn
     if (isComputerTurn()) return;
 
+    // In multiplayer, each player can move only their own side.
+    if (isMultiplayerGame && currentTurn !== multiplayerSide) return;
+
     const rowIndex = isBoardFlipped ? 7 - displayRow : displayRow;
     const colIndex = isBoardFlipped ? 7 - displayCol : displayCol;
     const squareIndex = rowIndex * 8 + colIndex;
@@ -294,6 +308,10 @@ function App() {
   const performMove = (v2Move) => {
     // Execute on engine's persistent Position (notation auto-generated from bitboard)
     const result = engineExecuteMove(v2Move);
+
+    if (isMultiplayerGame && p2p.isConnected && !remoteApplyingMoveRef.current) {
+      p2p.sendMessage({ type: 'move', move: v2Move });
+    }
 
     // Apply time increment
     applyTimeIncrement();
@@ -525,6 +543,10 @@ function App() {
     clearSelection();
     playGameStartSound();
     if (stockfish.isEngineReady) stockfish.newGame();
+
+    if (isMultiplayerGame && p2p.isConnected && !remoteApplyingMoveRef.current) {
+      p2p.sendMessage({ type: 'new_game' });
+    }
   };
 
   const handleRematch = () => {
@@ -538,11 +560,20 @@ function App() {
 
   const handlePlayFriend = () => {
     setGameMode('human');
+    setIsMultiplayerGame(false);
+    setMultiplayerSide('w');
+    setIsMultiplayerStarted(false);
+    setMultiplayerNotice('');
+    p2p.disconnect();
     setIsBoardFlipped(false);
     handleNewGame();
   };
 
   const handleSelectGameMode = ({ mode }) => {
+    if (isMultiplayerGame && mode !== 'human') {
+      console.log('Multiplayer game is active. Computer mode is disabled.');
+      return;
+    }
     setGameMode(mode);
     console.log(`Game mode changed to: ${mode}`);
   };
@@ -599,6 +630,11 @@ function App() {
 
   const handleResign = () => {
     setHighlightResign(false);
+
+    if (isMultiplayerGame && p2p.isConnected && !remoteApplyingMoveRef.current) {
+      p2p.sendMessage({ type: 'resign', by: multiplayerSide });
+    }
+
     const winner = currentTurn === 'w' ? (playerNames.black || 'Black') : (playerNames.white || 'White');
     setManualGameEnd('resigned');
     setIsTimerActive(false);
@@ -620,10 +656,26 @@ function App() {
   };
 
   const handleOfferDraw = () => {
+    if (isMultiplayerGame) {
+      if (!p2p.isConnected) {
+        setMultiplayerNotice('Not connected to opponent.');
+        return;
+      }
+
+      p2p.sendMessage({ type: 'draw_offer', by: multiplayerSide });
+      setMultiplayerNotice('Draw request sent. Waiting for opponent...');
+      return;
+    }
+
     setShowDrawOffer(true);
   };
 
   const handleAcceptDraw = () => {
+    if (isMultiplayerGame && incomingDrawOfferSide) {
+      p2p.sendMessage({ type: 'draw_response', accepted: true });
+      setIncomingDrawOfferSide(null);
+    }
+
     setShowDrawOffer(false);
     setManualGameEnd('draw');
     setIsTimerActive(false);
@@ -643,6 +695,12 @@ function App() {
   };
 
   const handleDeclineDraw = () => {
+    if (isMultiplayerGame && incomingDrawOfferSide) {
+      p2p.sendMessage({ type: 'draw_response', accepted: false });
+      setIncomingDrawOfferSide(null);
+      setMultiplayerNotice('Draw request declined.');
+    }
+
     setShowDrawOffer(false);
     console.log('Draw offer declined. Game continues.');
   };
@@ -654,15 +712,114 @@ function App() {
   };
 
   const updatePlayerName = (side, value) => {
+    if (isMultiplayerGame) {
+      if (multiplayerSide === 'w' && side !== 'white') return;
+      if (multiplayerSide === 'b' && side !== 'black') return;
+    }
+
     setPlayerNames((prev) => ({
       ...prev,
       [side]: value,
     }));
+
+    if (isMultiplayerGame && p2p.isConnected) {
+      p2p.sendMessage({ type: 'name_update', side, value });
+    }
   };
 
   const resetPlayerNames = () => {
+    if (isMultiplayerGame) return;
     setPlayerNames({ white: 'White', black: 'Black' });
   };
+
+  const startMultiplayerMatch = (side) => {
+    setGameMode('human');
+    setIsMultiplayerGame(true);
+    setIsMultiplayerStarted(true);
+    setMultiplayerSide(side);
+    setIsBoardFlipped(side === 'b');
+    setEntryMode('local');
+    setMultiplayerNotice('Match started.');
+    engineResetGame();
+    setManualGameEnd(null);
+    setShowGameOverUI(false);
+    setShowDrawOffer(false);
+    setIncomingDrawOfferSide(null);
+    setGameStarted(true);
+    setIsTimerActive(true);
+    setWhiteTime(selectedTimeControl.base * 1000);
+    setBlackTime(selectedTimeControl.base * 1000);
+    playGameStartSound();
+  };
+
+  useEffect(() => {
+    if (!isMultiplayerGame || !gameStarted) return;
+    if (p2p.status === 'disconnected' || p2p.status === 'error') {
+      setManualGameEnd('abandoned');
+      setShowGameOverUI(true);
+      setIsTimerActive(false);
+      setMultiplayerNotice('Connection lost. Game abandoned.');
+    }
+  }, [p2p.status, isMultiplayerGame, gameStarted]);
+
+  useEffect(() => {
+    if (!p2p.lastMessage) return;
+
+    const msg = p2p.lastMessage;
+
+    if (msg.type === 'start_game' && entryMode === 'multiplayer' && p2p.role === 'guest') {
+      const guestSide = msg.hostSide === 'b' ? 'w' : 'b';
+      startMultiplayerMatch(guestSide);
+    }
+
+    if (msg.type === 'move' && msg.move && isMultiplayerGame) {
+      remoteApplyingMoveRef.current = true;
+      performMove(msg.move);
+      remoteApplyingMoveRef.current = false;
+    }
+
+    if (msg.type === 'new_game' && isMultiplayerGame) {
+      remoteApplyingMoveRef.current = true;
+      handleNewGame();
+      remoteApplyingMoveRef.current = false;
+      setMultiplayerNotice('Opponent started a new game.');
+    }
+
+    if (msg.type === 'draw_offer' && isMultiplayerGame) {
+      setIncomingDrawOfferSide(msg.by || null);
+      setShowDrawOffer(true);
+      setMultiplayerNotice('Opponent offered a draw.');
+    }
+
+    if (msg.type === 'draw_response' && isMultiplayerGame) {
+      if (msg.accepted) {
+        setShowDrawOffer(false);
+        setIncomingDrawOfferSide(null);
+        setManualGameEnd('draw');
+        setShowGameOverUI(true);
+        setIsTimerActive(false);
+        playGameEndSound();
+        setMultiplayerNotice('Draw accepted.');
+      } else {
+        setMultiplayerNotice('Opponent declined draw request.');
+      }
+    }
+
+    if (msg.type === 'resign' && isMultiplayerGame) {
+      setManualGameEnd('resigned');
+      setIsTimerActive(false);
+      setShowGameOverUI(true);
+      playGameEndSound();
+      setMultiplayerNotice('Opponent resigned.');
+    }
+
+    if (msg.type === 'name_update' && msg.side && typeof msg.value === 'string') {
+      setPlayerNames((prev) => ({ ...prev, [msg.side]: msg.value }));
+    }
+
+    p2p.clearLastMessage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p2p.lastMessage]);
 
   // ══════════════════════════════════════════════════════════════════
   // DISPLAY COMPUTATION
@@ -708,6 +865,38 @@ function App() {
     }
     : activeLastMove;
 
+  if (!entryMode) {
+    return (
+      <ModeSelectScreen
+        onSelectLocal={() => {
+          setIsMultiplayerGame(false);
+          setMultiplayerSide('w');
+          setIsMultiplayerStarted(false);
+          setMultiplayerNotice('');
+          p2p.disconnect();
+          setEntryMode('local');
+        }}
+        onSelectMultiplayer={() => {
+          setEntryMode('multiplayer');
+          setGameMode('human');
+          setIsMultiplayerStarted(false);
+          setMultiplayerNotice('');
+        }}
+      />
+    );
+  }
+
+  if (entryMode === 'multiplayer') {
+    return (
+      <MultiplayerLobbyScreen
+        onBack={() => setEntryMode(null)}
+        onContinueLocal={() => setEntryMode('local')}
+        p2p={p2p}
+        onStartMultiplayer={startMultiplayerMatch}
+      />
+    );
+  }
+
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row bg-linear-to-br from-[#0bb0e5] via-[#0483ad] to-[#0bb0e5] overflow-hidden">
       {/* Left Sidebar - Hidden on mobile */}
@@ -743,6 +932,12 @@ function App() {
             {formatTime(isBoardFlipped ? whiteTime : blackTime)}
           </div>
         </div>
+
+        {isMultiplayerGame && isMultiplayerStarted && (
+          <div className="w-full max-w-[min(560px,100vw)] mb-2 text-center text-xs sm:text-sm text-white/90 backdrop-blur-sm rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.2)' }}>
+            {multiplayerNotice || `Connected (${multiplayerSide === 'w' ? 'White' : 'Black'})`}
+          </div>
+        )}
 
         {/* Chess Board + Evaluation Bar */}
         <div className="relative flex flex-row items-center">
@@ -822,6 +1017,7 @@ function App() {
           {showDrawOffer && (
             <DrawOfferModal
               currentTurn={currentTurn}
+              offeringSide={incomingDrawOfferSide}
               onAccept={handleAcceptDraw}
               onDecline={handleDeclineDraw}
             />
@@ -837,6 +1033,9 @@ function App() {
             onWhiteNameChange={(value) => updatePlayerName('white', value)}
             onBlackNameChange={(value) => updatePlayerName('black', value)}
             onResetNames={resetPlayerNames}
+            canEditWhite={!isMultiplayerGame || multiplayerSide === 'w'}
+            canEditBlack={!isMultiplayerGame || multiplayerSide === 'b'}
+            showReset={!isMultiplayerGame}
           />
         )}
 
