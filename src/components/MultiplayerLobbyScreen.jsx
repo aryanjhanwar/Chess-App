@@ -22,6 +22,12 @@ export default function MultiplayerLobbyScreen({
     }
   }, [p2p.isConnected, p2p.role]);
 
+  useEffect(() => {
+    if (p2p.status === 'pin-in-use') {
+      setMessage('This PIN is already in use. Try another 6-digit PIN.');
+    }
+  }, [p2p.status]);
+
   const copyText = async (value) => {
     if (!value) return;
     try {

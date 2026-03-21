@@ -1,6 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Peer from 'peerjs';
 
+const DEFAULT_ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  // Public relay fallback (best-effort) to improve connectivity on strict NAT.
+  { urls: 'stun:openrelay.metered.ca:80' },
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turns:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+];
+
+function getPeerIdFromPin(pin) {
+  return `online-chess-app-${pin}`;
+}
+
+function getPeerOptions(customId) {
+  return {
+    ...(customId ? { id: customId } : {}),
+    secure: true,
+    debug: 1,
+    config: {
+      iceServers: DEFAULT_ICE_SERVERS,
+    },
+  };
+}
+
 export function useP2PGame() {
   const peerRef = useRef(null);
   const connRef = useRef(null);
@@ -64,7 +101,7 @@ export function useP2PGame() {
       setRole('host');
       setStatus('hosting');
 
-      const peer = new Peer(pin);
+      const peer = new Peer(getPeerOptions(getPeerIdFromPin(pin)));
       peerRef.current = peer;
 
       peer.on('open', () => {
@@ -77,6 +114,10 @@ export function useP2PGame() {
 
       peer.on('error', (error) => {
         console.error('Peer host error:', error);
+        if (error?.type === 'unavailable-id') {
+          setStatus('pin-in-use');
+          return;
+        }
         setStatus('error');
       });
     } catch (error) {
@@ -92,11 +133,11 @@ export function useP2PGame() {
       setRole('guest');
       setStatus('connecting');
 
-      const peer = new Peer();
+      const peer = new Peer(getPeerOptions());
       peerRef.current = peer;
 
       peer.on('open', () => {
-        const conn = peer.connect(pin, { reliable: true });
+        const conn = peer.connect(getPeerIdFromPin(pin), { reliable: true });
         attachConnection(conn);
       });
 
