@@ -31,17 +31,19 @@ function MobileStartGamePanel({
       <div className="grid grid-cols-2 gap-2 mb-3">
         <button
           onClick={() => onSelectGameMode({ mode: 'human' })}
-          className="py-2.5 rounded-lg font-semibold text-white transition-all"
+          className="py-2.5 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
           style={getModeButtonStyle('human')}
         >
-          vs Human
+          <span className="text-base">👥</span>
+          <span>vs Human</span>
         </button>
         <button
           onClick={() => onSelectGameMode({ mode: 'computer' })}
-          className="py-2.5 rounded-lg font-semibold text-white transition-all"
+          className="py-2.5 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
           style={getModeButtonStyle('computer')}
         >
-          vs Computer
+          <span className="text-base">🤖</span>
+          <span>vs Computer</span>
         </button>
       </div>
 

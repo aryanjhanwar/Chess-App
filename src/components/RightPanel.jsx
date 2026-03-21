@@ -27,13 +27,15 @@ export default function RightPanel({
   onReviewTogglePlay,
   onExitReview,
   onPlayFriend,
+  onSelectGameMode,
   canGoBack,
   canGoForward,
   gameMode,
   computerDifficulty,
   onComputerDifficultyChange,
   playerColor,
-  onPlayerColorChange
+  onPlayerColorChange,
+  highlightResign = false
 }) {
   const [activeTab, setActiveTab] = useState('newGame');
   const [showTimeOptions, setShowTimeOptions] = useState(false);
@@ -100,6 +102,7 @@ export default function RightPanel({
                 gameState={gameState}
                 isReviewMode={isReviewMode}
                 showReviewControls={false}
+                highlightResign={highlightResign}
               />
               {isReviewMode && (
                 <ReviewModeControls
@@ -161,20 +164,46 @@ export default function RightPanel({
                 </div>
               ) : (
                 <div className="space-y-3">
+                  {/* Game Mode Selector */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onSelectGameMode({ mode: 'human' })}
+                      className="py-2.5 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
+                      style={{
+                        background: gameMode === 'human' ? 'rgba(127,191,63,0.5)' : 'rgba(255,255,255,0.12)',
+                        border: gameMode === 'human' ? '2px solid #7fbf3f' : '2px solid transparent'
+                      }}
+                    >
+                      <span className="text-base">👥</span>
+                      <span>vs Human</span>
+                    </button>
+                    <button
+                      onClick={() => onSelectGameMode({ mode: 'computer' })}
+                      className="py-2.5 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
+                      style={{
+                        background: gameMode === 'computer' ? 'rgba(127,191,63,0.5)' : 'rgba(255,255,255,0.12)',
+                        border: gameMode === 'computer' ? '2px solid #7fbf3f' : '2px solid transparent'
+                      }}
+                    >
+                      <span className="text-base">🤖</span>
+                      <span>vs Computer</span>
+                    </button>
+                  </div>
+
                   {/* Computer Settings - Only show if vs Computer mode */}
                   {gameMode === 'computer' && (
                     <>
                       {/* Computer Difficulty */}
                       <div 
                         onClick={() => setShowComputerSettings(!showComputerSettings)}
-                        className="flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all"
+                        className="relative flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all"
                         style={{background: SURFACE_BG}}
                         {...createHoverBackgroundHandlers(SURFACE_BG, SURFACE_BG_HOVER)}
                       >
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-white text-center">
                           🤖 {getDifficultyLabel(computerDifficulty)} (Level {computerDifficulty})
                         </span>
-                        <span className="text-xl">{showComputerSettings ? '⌃' : '⌄'}</span>
+                        <span className="text-xl absolute right-4">{showComputerSettings ? '⌃' : '⌄'}</span>
                       </div>
 
                       {showComputerSettings && (

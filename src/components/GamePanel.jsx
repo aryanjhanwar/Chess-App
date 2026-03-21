@@ -18,7 +18,8 @@ export default function GamePanel({
   onReviewTogglePlay,
   onExitReview,
   showReviewControls = true,
-  mobileLayout = false
+  mobileLayout = false,
+  highlightResign = false
 }) {
   // Group moves into pairs (white move, black move)
   const movePairs = [];
@@ -99,10 +100,14 @@ export default function GamePanel({
     <div className={mobileLayout ? 'flex gap-2 mb-3' : 'flex gap-2 mt-3'}>
       <button
         onClick={onResign}
-        className="flex-1 backdrop-blur-sm rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 text-white"
-        style={{background: 'rgba(220,38,38,0.5)'}}
-        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.7)'}
-        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.5)'}
+        className={`flex-1 backdrop-blur-sm rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 text-white ${highlightResign ? 'ring-2 ring-yellow-300 animate-pulse shadow-lg shadow-yellow-300/35' : ''}`}
+        style={{background: highlightResign ? 'rgba(220,38,38,0.78)' : 'rgba(220,38,38,0.5)'}}
+        onMouseEnter={(e) => {
+          if (!highlightResign) e.currentTarget.style.background = 'rgba(220,38,38,0.7)';
+        }}
+        onMouseLeave={(e) => {
+          if (!highlightResign) e.currentTarget.style.background = 'rgba(220,38,38,0.5)';
+        }}
       >
         <span>🏳️</span>
         Resign
@@ -120,10 +125,25 @@ export default function GamePanel({
     </div>
   ) : null;
 
+  const reviewControlsSection = isReviewMode && showReviewControls ? (
+    <ReviewModeControls
+      reviewIndex={reviewIndex}
+      reviewHistoryLength={reviewHistoryLength}
+      isPlaying={isPlaying}
+      onPrevious={onReviewPrevious}
+      onNext={onReviewNext}
+      onGoToStart={onReviewStart}
+      onGoToEnd={onReviewEnd}
+      onTogglePlay={onReviewTogglePlay}
+      onExit={onExitReview}
+    />
+  ) : null;
+
   return (
     <div className="h-full flex flex-col">
       {mobileLayout ? (
         <>
+          {reviewControlsSection}
           {gameControlsSection}
           {gameInfoSection}
           {moveHistorySection}
@@ -137,19 +157,7 @@ export default function GamePanel({
       )}
 
       {/* Fix #13: Review Mode Controls — visible on mobile too */}
-      {isReviewMode && showReviewControls && (
-        <ReviewModeControls
-          reviewIndex={reviewIndex}
-          reviewHistoryLength={reviewHistoryLength}
-          isPlaying={isPlaying}
-          onPrevious={onReviewPrevious}
-          onNext={onReviewNext}
-          onGoToStart={onReviewStart}
-          onGoToEnd={onReviewEnd}
-          onTogglePlay={onReviewTogglePlay}
-          onExit={onExitReview}
-        />
-      )}
+      {!mobileLayout && reviewControlsSection}
     </div>
   );
 }

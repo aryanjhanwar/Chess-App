@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { generatePGN, getPGNResult, formatPGNTimeControl } from './engine/pgn.js'
 import { useChessTimer } from './hooks/useChessTimer'
 import { useGameEngine, isPromotionTag, getPromotionPieceType, uciToV2Move } from './hooks/useGameEngine'
@@ -111,6 +111,7 @@ function App() {
   const [showDrawOffer, setShowDrawOffer] = useState(false);
   const [isBoardFlipped, setIsBoardFlipped] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [playerNames, setPlayerNames] = useState({ white: 'White', black: 'Black' });
 
   // Game mode & computer opponent
   const [gameMode, setGameMode] = useState('human');
@@ -127,6 +128,9 @@ function App() {
 
   // Review mode display state (overrides engine state during review)
   const [reviewDisplayState, setReviewDisplayState] = useState(null);
+  const [boardViewKey, setBoardViewKey] = useState(0);
+  const [highlightResign, setHighlightResign] = useState(false);
+  const resignHighlightTimeoutRef = useRef(null);
 
   // Initialize Stockfish
   const stockfish = useStockfish();
@@ -336,8 +340,8 @@ function App() {
 
     const pgnResult = getPGNResult(endState, nextTurn);
     const pgn = generatePGN({
-      whitePlayer: 'White',
-      blackPlayer: 'Black',
+      whitePlayer: playerNames.white || 'White',
+      blackPlayer: playerNames.black || 'Black',
       result: pgnResult,
       moveHistory: finalMoveHistory,
       gameState: endState,
@@ -543,6 +547,41 @@ function App() {
     console.log(`Game mode changed to: ${mode}`);
   };
 
+  const handlePlaySelectFromNav = (mode) => {
+    const isActiveGame = gameStarted && gameState === 'playing' && !isReviewMode;
+    if (isActiveGame) {
+      setHighlightResign(true);
+      if (resignHighlightTimeoutRef.current) {
+        clearTimeout(resignHighlightTimeoutRef.current);
+      }
+      resignHighlightTimeoutRef.current = setTimeout(() => {
+        setHighlightResign(false);
+      }, 2200);
+      return;
+    }
+
+    handleSelectGameMode({ mode });
+    setShowGameOverUI(false);
+    setShowDrawOffer(false);
+    clearSelection();
+    setGameStarted(false);
+    setHighlightResign(false);
+  };
+
+  const handleRefreshBoardView = () => {
+    // Force board UI remount without changing game state or position.
+    clearSelection();
+    setBoardViewKey(prev => prev + 1);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (resignHighlightTimeoutRef.current) {
+        clearTimeout(resignHighlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleComputerDifficultyChange = (level) => {
     setComputerDifficulty(level);
     if (stockfish.isEngineReady) {
@@ -559,7 +598,8 @@ function App() {
   };
 
   const handleResign = () => {
-    const winner = currentTurn === 'w' ? 'Black' : 'White';
+    setHighlightResign(false);
+    const winner = currentTurn === 'w' ? (playerNames.black || 'Black') : (playerNames.white || 'White');
     setManualGameEnd('resigned');
     setIsTimerActive(false);
     setShowGameOverUI(true);
@@ -567,8 +607,8 @@ function App() {
 
     const pgnResult = currentTurn === 'w' ? '0-1' : '1-0';
     const pgn = generatePGN({
-      whitePlayer: 'White',
-      blackPlayer: 'Black',
+      whitePlayer: playerNames.white || 'White',
+      blackPlayer: playerNames.black || 'Black',
       result: pgnResult,
       moveHistory: moveHistory,
       gameState: 'resigned',
@@ -591,8 +631,8 @@ function App() {
     playGameEndSound();
 
     const pgn = generatePGN({
-      whitePlayer: 'White',
-      blackPlayer: 'Black',
+      whitePlayer: playerNames.white || 'White',
+      blackPlayer: playerNames.black || 'Black',
       result: '1/2-1/2',
       moveHistory: moveHistory,
       gameState: 'draw',
@@ -611,6 +651,17 @@ function App() {
     setSelectedTimeControl(control);
     setWhiteTime(control.base * 1000);
     setBlackTime(control.base * 1000);
+  };
+
+  const updatePlayerName = (side, value) => {
+    setPlayerNames((prev) => ({
+      ...prev,
+      [side]: value,
+    }));
+  };
+
+  const resetPlayerNames = () => {
+    setPlayerNames({ white: 'White', black: 'Black' });
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -661,7 +712,12 @@ function App() {
     <div className="h-screen w-screen flex flex-col lg:flex-row bg-linear-to-br from-[#0bb0e5] via-[#0483ad] to-[#0bb0e5] overflow-hidden">
       {/* Left Sidebar - Hidden on mobile */}
       <div className="hidden lg:block">
-        <Sidebar onSelectGameMode={handleSelectGameMode} onOpenSettings={() => setShowSettings(true)} />
+        <Sidebar
+          onSelectGameMode={handleSelectGameMode}
+          onOpenSettings={() => setShowSettings(true)}
+          onRefresh={handleRefreshBoardView}
+          onPlaySelect={handlePlaySelectFromNav}
+        />
       </div>
 
       {/* Center Area - Chess Board */}
@@ -672,7 +728,7 @@ function App() {
           <div className="flex items-center gap-3 flex-1">
             <PlayerCard
               color={isBoardFlipped ? 'w' : 'b'}
-              playerName={isBoardFlipped ? 'White' : 'Black'}
+              playerName={isBoardFlipped ? (playerNames.white || 'White') : (playerNames.black || 'Black')}
               capturedPieces={isBoardFlipped ? activeCapturedPieces.b : activeCapturedPieces.w}
               opponentCapturedPieces={isBoardFlipped ? activeCapturedPieces.w : activeCapturedPieces.b}
             />
@@ -699,6 +755,7 @@ function App() {
             currentTurn={currentTurn}
           />
           <ChessBoardView
+            key={boardViewKey}
             board={displayBoard}
             selectedSquare={displaySelectedSquare}
             validMoves={displayValidMoves}
@@ -773,7 +830,14 @@ function App() {
 
         {/* Settings Modal */}
         {showSettings && (
-          <SettingsModal onClose={() => setShowSettings(false)} />
+          <SettingsModal
+            onClose={() => setShowSettings(false)}
+            whiteName={playerNames.white}
+            blackName={playerNames.black}
+            onWhiteNameChange={(value) => updatePlayerName('white', value)}
+            onBlackNameChange={(value) => updatePlayerName('black', value)}
+            onResetNames={resetPlayerNames}
+          />
         )}
 
         {/* Bottom Bar - Player */}
@@ -781,7 +845,7 @@ function App() {
           <div className="flex items-center gap-3 flex-1">
             <PlayerCard
               color={isBoardFlipped ? 'b' : 'w'}
-              playerName={isBoardFlipped ? 'Black' : 'White'}
+              playerName={isBoardFlipped ? (playerNames.black || 'Black') : (playerNames.white || 'White')}
               capturedPieces={isBoardFlipped ? activeCapturedPieces.w : activeCapturedPieces.b}
               opponentCapturedPieces={isBoardFlipped ? activeCapturedPieces.b : activeCapturedPieces.w}
             />
@@ -820,6 +884,7 @@ function App() {
               onOfferDraw={handleOfferDraw}
               gameState={gameState}
               mobileLayout={true}
+              highlightResign={highlightResign}
               isReviewMode={isReviewMode}
               reviewIndex={reviewIndex}
               reviewHistoryLength={reviewHistoryLength}
@@ -835,18 +900,31 @@ function App() {
         )}
 
         {/* Mobile Bottom Navigation */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md py-3 px-4 flex justify-around items-center border-t border-white/20 z-50" style={{ background: 'rgba(0, 150, 200, 0.85)' }}>
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md py-2.5 px-3 grid grid-cols-4 gap-1 items-center border-t border-white/20 z-50" style={{ background: 'rgba(0, 150, 200, 0.88)' }}>
           <button
-            className="flex flex-col items-center gap-1 text-white transition-all active:scale-95"
+            onClick={() => handlePlaySelectFromNav(gameMode)}
+            className="flex flex-col items-center justify-center gap-1 text-white transition-all active:scale-95 rounded-lg py-1.5"
           >
-            <span className="text-sm font-semibold">Play</span>
-            <span className="text-[10px] opacity-80">Mode in panel</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-4.197-2.432A1 1 0 009 9.602v4.796a1 1 0 001.555.832l4.197-2.432a1 1 0 000-1.73z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-semibold">Play</span>
           </button>
             <button
-              onClick={() => setShowSettings(true)}
-              className="flex flex-col items-center gap-1 text-white transition-all active:scale-95"
+              onClick={handleRefreshBoardView}
+              className="flex flex-col items-center justify-center gap-1 text-white transition-all active:scale-95 rounded-lg py-1.5"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m14.836 2A8.001 8.001 0 005.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 016.164 15m13.255 0H15" />
+              </svg>
+              <span className="text-xs font-medium">Refresh</span>
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex flex-col items-center justify-center gap-1 text-white transition-all active:scale-95 rounded-lg py-1.5"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -854,9 +932,9 @@ function App() {
             </button>
             <button
               onClick={() => setIsBoardFlipped(!isBoardFlipped)}
-              className="flex flex-col items-center gap-1 text-white transition-all active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 text-white transition-all active:scale-95 rounded-lg py-1.5"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
               </svg>
               <span className="text-xs font-medium">Flip</span>
@@ -896,11 +974,13 @@ function App() {
           onReviewEnd={handleReviewEnd}
           onReviewTogglePlay={handleReviewTogglePlay}
           onExitReview={handleExitReview}
+          onSelectGameMode={handleSelectGameMode}
           gameMode={gameMode}
           computerDifficulty={computerDifficulty}
           onComputerDifficultyChange={handleComputerDifficultyChange}
           playerColor={playerColor}
           onPlayerColorChange={handlePlayerColorChange}
+          highlightResign={highlightResign}
           onPlayFriend={handlePlayFriend}
         />
       </div>

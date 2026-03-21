@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export default function Sidebar({ onSelectGameMode, onOpenSettings }) {
+export default function Sidebar({ onSelectGameMode, onOpenSettings, onRefresh, onPlaySelect }) {
   const [showPlayMenu, setShowPlayMenu] = useState(false);
   const menuTimeoutRef = useRef(null);
 
@@ -48,17 +48,19 @@ export default function Sidebar({ onSelectGameMode, onOpenSettings }) {
             >
               <button
                 onClick={() => {
-                  onSelectGameMode({ mode: 'human' });
+                  if (onPlaySelect) onPlaySelect('human');
+                  else onSelectGameMode({ mode: 'human' });
                   setShowPlayMenu(false);
                 }}
                 className="w-full text-left px-4 py-2.5 text-white hover:bg-slate-700 transition-colors flex items-center gap-3"
               >
                 <span className="text-lg">👥</span>
-                <span className="font-medium">Play</span>
+                <span className="font-medium">vs Human</span>
               </button>
               <button
                 onClick={() => {
-                  onSelectGameMode({ mode: 'computer' });
+                  if (onPlaySelect) onPlaySelect('computer');
+                  else onSelectGameMode({ mode: 'computer' });
                   setShowPlayMenu(false);
                 }}
                 className="w-full text-left px-4 py-2.5 text-white hover:bg-slate-700 transition-colors flex items-center gap-3"
@@ -73,6 +75,10 @@ export default function Sidebar({ onSelectGameMode, onOpenSettings }) {
 
       {/* Bottom Menu */}
       <div className="space-y-2 text-white opacity-90">
+        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#0e8db7] cursor-pointer" onClick={onRefresh}>
+          <span>🔄</span>
+          <span className="text-sm">Refresh</span>
+        </div>
         <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#0e8db7] cursor-pointer" onClick={onOpenSettings}>
           <span>⚙️</span>
           <span className="text-sm">Settings</span>
