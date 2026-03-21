@@ -41,12 +41,18 @@ function getPeerOptions(customId) {
 export function useP2PGame() {
   const peerRef = useRef(null);
   const connRef = useRef(null);
+  const connectRetryTimerRef = useRef(null);
 
   const [status, setStatus] = useState('idle');
   const [role, setRole] = useState(null); // 'host' | 'guest' | null
   const [lastMessage, setLastMessage] = useState(null);
 
   const closeAll = useCallback(() => {
+    if (connectRetryTimerRef.current) {
+      clearTimeout(connectRetryTimerRef.current);
+      connectRetryTimerRef.current = null;
+    }
+
     if (connRef.current) {
       try {
         connRef.current.close();
@@ -101,7 +107,8 @@ export function useP2PGame() {
       setRole('host');
       setStatus('hosting');
 
-      const peer = new Peer(getPeerOptions(getPeerIdFromPin(pin)));
+      const peerId = getPeerIdFromPin(pin);
+      const peer = new Peer(peerId, getPeerOptions());
       peerRef.current = peer;
 
       peer.on('open', () => {
@@ -133,12 +140,28 @@ export function useP2PGame() {
       setRole('guest');
       setStatus('connecting');
 
-      const peer = new Peer(getPeerOptions());
+      const peer = new Peer(undefined, getPeerOptions());
       peerRef.current = peer;
 
       peer.on('open', () => {
-        const conn = peer.connect(getPeerIdFromPin(pin), { reliable: true });
-        attachConnection(conn);
+        const targetId = getPeerIdFromPin(pin);
+        let attempts = 0;
+
+        const tryConnect = () => {
+          attempts += 1;
+          const conn = peer.connect(targetId, { reliable: true });
+          attachConnection(conn);
+
+          conn.on('error', (error) => {
+            const isUnavailable = error?.type === 'peer-unavailable' || /Could not connect to peer/i.test(error?.message || '');
+            if (isUnavailable && attempts < 5) {
+              setStatus('connecting');
+              connectRetryTimerRef.current = setTimeout(tryConnect, 1200);
+            }
+          });
+        };
+
+        tryConnect();
       });
 
       peer.on('error', (error) => {
