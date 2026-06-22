@@ -40,7 +40,7 @@ Core outcomes:
 - Tailwind CSS 4
 - ESLint 9
 - Custom bitboard chess engine (in `src/engine/bitboard`)
-- Stockfish (Web Worker, local worker asset with fallback)
+- Stockfish (Web Worker, local Stockfish 17 family assets)
 
 ## Feature Analysis
 
@@ -136,19 +136,24 @@ Stockfish is managed via `src/hooks/useStockfish.js`.
 
 Key implementation points:
 - Initializes worker and UCI mode
-- Uses local worker source first for stability
-- Supports fallback worker path when needed
+- Supports selectable engine profiles (auto, 17 lite/full, single-thread variants)
 - Guards against stale bestmove results
 - Timeouts and safe cancellation for pending move requests
+- MultiPV lifecycle synchronization for move search vs analysis search
 - Exposes helper methods:
 	- `setPosition(fen)`
 	- `getBestMove(depth, moveTime)`
 	- `evaluatePosition(fen, depth, moveTime)`
+	- `analyzePosition(fen, depth, moveTime, { multipv })`
 	- `setSkillLevel(level)`
 	- `stopAnalysis()`
 	- `newGame()`
 
-Difficulty tuning lives in `src/utils/stockfishUtils.js`.
+Difficulty tuning and engine/analysis defaults live in `src/utils/stockfishUtils.js`.
+These controls are exposed in the Settings modal:
+- Engine profile selection
+- Live evaluation depth and movetime
+- Review analysis depth, movetime, and MultiPV
 
 ## Review Mode
 Review state is managed by `src/hooks/useReviewMode.js` and consumed by the app/game panel controls.
@@ -222,10 +227,13 @@ src/
 		theme.js
 
 public/
-	stockfish.js
-	stockfish.wasm.js
-	stockfish.worker.js
-	stockfish-wrapper.js
+	engines/
+		stockfish-17/
+			stockfish-17-lite.js
+			stockfish-17.js
+			stockfish-17-lite-single.js
+			stockfish-17-single.js
+			*.wasm
 ```
 
 ## Getting Started
@@ -276,7 +284,6 @@ Deploy `dist/` to your static host of choice (Vercel, Netlify, Cloudflare Pages,
 
 ## Known Limitations
 - No automated test suite is wired yet (manual verification flow currently).
-- Settings modal currently acts as a placeholder for future controls.
 - Online multiplayer is not implemented (local + vs computer only).
 
 ## Roadmap

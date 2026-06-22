@@ -5,7 +5,7 @@ export default function GameOverModal({
   currentTurn, 
   onNewGame, 
   onRematch,
-  onGameReview,
+  onReview,
   onClose 
 }) {
   const getGameOverContent = () => {
@@ -80,10 +80,10 @@ export default function GameOverModal({
           {/* Buttons */}
           <div className="flex flex-col gap-3 w-full mt-2">
             <button
-              onClick={onGameReview}
-              className={`w-full ${theme.primaryButton} text-white px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold transition-all text-base sm:text-lg`}
+              onClick={onReview}
+              className={`w-full ${theme.secondaryButton} text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base`}
             >
-              📖 Game Review
+              Review
             </button>
             <div className="flex gap-3">
               <button

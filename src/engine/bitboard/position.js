@@ -17,8 +17,7 @@ import {
   countBits,
   getSetBits,
   algebraicToSquare,
-  squareToAlgebraic,
-  pieceIsWhite
+  squareToAlgebraic
 } from './utils.js';
 
 // ========================================

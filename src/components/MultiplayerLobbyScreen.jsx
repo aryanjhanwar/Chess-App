@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 function generatePin() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -16,17 +16,17 @@ export default function MultiplayerLobbyScreen({
   const [hostSide, setHostSide] = useState('w');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    if (p2p.isConnected && p2p.role === 'guest') {
-      setMessage('Connected. Waiting for host to start the match...');
-    }
-  }, [p2p.isConnected, p2p.role]);
-
-  useEffect(() => {
+  const derivedMessage = useMemo(() => {
     if (p2p.status === 'pin-in-use') {
-      setMessage('This PIN is already in use. Try another 6-digit PIN.');
+      return 'This PIN is already in use. Try another 6-digit PIN.';
     }
-  }, [p2p.status]);
+    if (p2p.isConnected && p2p.role === 'guest') {
+      return 'Connected. Waiting for host to start the match...';
+    }
+    return '';
+  }, [p2p.status, p2p.isConnected, p2p.role]);
+
+  const statusMessage = message || derivedMessage;
 
   const copyText = async (value) => {
     if (!value) return;
@@ -206,7 +206,7 @@ export default function MultiplayerLobbyScreen({
 
           <div className="rounded-xl border border-white/20 bg-black/10 p-3 sm:p-4 text-sm text-white/85">
             <p>Status: <span className="font-semibold text-white">{p2p.status}</span></p>
-            {message ? <p className="mt-1">{message}</p> : null}
+            {statusMessage ? <p className="mt-1">{statusMessage}</p> : null}
             <p className="mt-2 text-xs text-white/70">Host is White, Joiner is Black.</p>
           </div>
         </div>

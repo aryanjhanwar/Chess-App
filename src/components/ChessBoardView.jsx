@@ -1,16 +1,70 @@
 import { useEffect, useMemo, memo } from 'react';
-import { pieceImages, theme } from '../constants/theme';
+import { pieceImages as defaultPieceImages } from '../constants/theme';
 import { useDragAndDrop } from '../hooks/useDragAndDrop';
+import { toPublicPath } from '../utils/assetPath';
+
+function getPngFallbackFromSvg(path) {
+  if (typeof path !== 'string') return '';
+  const svgMatch = path.match(/\/(w|b)([KQRBNP])\.svg$/i);
+  if (!svgMatch) return '';
+  const color = svgMatch[1].toLowerCase();
+  const piece = svgMatch[2].toLowerCase();
+  return path.replace(/\/(w|b)([KQRBNP])\.svg$/i, `/${color}${piece}.png`);
+}
+
+function getNextPieceFallback(path, attempt) {
+  if (typeof path !== 'string') return '';
+  const match = path.match(/\/(w|b)([KQRBNPkpqrbn])\.(svg|png|webp|jpg|jpeg)$/i);
+  if (!match) return '';
+  const color = match[1].toLowerCase();
+  const piece = String(match[2]).toUpperCase();
+  const upperCode = `${color}${piece}`;
+  const lowerCode = `${color}${piece.toLowerCase()}`;
+  const candidates = [
+    `${upperCode}.svg`, `${upperCode}.png`, `${upperCode}.webp`,
+    `${lowerCode}.svg`, `${lowerCode}.png`, `${lowerCode}.webp`,
+    `${upperCode}.jpg`, `${lowerCode}.jpg`, `${upperCode}.jpeg`, `${lowerCode}.jpeg`,
+  ];
+  const currentTry = Number.isFinite(attempt) ? attempt : 0;
+  if (currentTry >= candidates.length - 1) return '';
+  const nextFile = candidates[currentTry + 1];
+  return path.replace(/\/(w|b)([KQRBNPkpqrbn])\.(svg|png|webp|jpg|jpeg)$/i, `/${nextFile}`);
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex || typeof hex !== 'string') return `rgba(0, 0, 0, ${alpha})`;
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3
+    ? clean.split('').map((char) => char + char).join('')
+    : clean;
+  const parsed = Number.parseInt(full, 16);
+  if (Number.isNaN(parsed)) return `rgba(0, 0, 0, ${alpha})`;
+  const r = (parsed >> 16) & 255;
+  const g = (parsed >> 8) & 255;
+  const b = parsed & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+const NOOP = () => {};
 
 // Memoized Square component - only re-renders when its props change
 const Square = memo(({ 
   rowIndex, 
   colIndex, 
   piece, 
-  bgColor,
+  bgStyle,
+  showCoordinates,
+  rankLabel,
+  fileLabel,
   isSelected,
   isValidMove,
+  isLastMoveTo,
+  moveClassification,
+  showAnalysisMoveIcon,
   isBeingDragged,
+  pieceAnimation,
+  compactMode,
+  activePieceImages,
   onSquareClick,
   onMouseDown,
   onMouseUp
@@ -24,16 +78,39 @@ const Square = memo(({
       onMouseUp={(e) => onMouseUp(e, rowIndex, colIndex)}
       onTouchStart={(e) => onMouseDown(e, rowIndex, colIndex, piece)}
       onTouchEnd={(e) => onMouseUp(e, rowIndex, colIndex)}
-      className={`w-[calc(min(70px,(100vw-2rem)/8))] h-[calc(min(70px,(100vw-2rem)/8))] sm:w-[70px] sm:h-[70px] flex items-center justify-center cursor-pointer relative ${bgColor} ${isSelected ? 'ring-4 ring-yellow-400 ring-inset' : ''} hover:opacity-90`}
-      style={{ transition: 'opacity 0.1s ease-out' }}
+      className={`w-[calc(min(70px,(100vw-2rem)/8))] h-[calc(min(70px,(100vw-2rem)/8))] ${compactMode ? 'sm:w-[62px] sm:h-[62px]' : 'sm:w-[70px] sm:h-[70px]'} flex items-center justify-center cursor-pointer relative ${isSelected ? 'ring-4 ring-yellow-400 ring-inset' : ''} hover:opacity-90`}
+      style={{ ...bgStyle, transition: 'opacity 0.1s ease-out' }}
     >
       {piece && (
         <img 
-          src={pieceImages[piece]} 
+          src={activePieceImages[piece] || defaultPieceImages[piece]} 
           alt={piece}
-          className={`w-[85%] h-[85%] sm:w-14 sm:h-14 object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
+          className={`w-[85%] h-[85%] ${compactMode ? 'sm:w-12 sm:h-12' : 'sm:w-14 sm:h-14'} object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
           draggable="false"
-          style={{ pointerEvents: 'none', transition: 'opacity 0.1s ease-out, transform 0.15s ease-out' }}
+          style={{
+            pointerEvents: 'none',
+            transition: pieceAnimation
+              ? 'opacity 0.12s ease-out, transform 0.16s ease-out'
+              : 'none'
+          }}
+          onError={(event) => {
+            const element = event.currentTarget;
+            const currentTry = Number(element.dataset.fallbackTry || 0);
+            const fallback = currentTry === 0
+              ? getPngFallbackFromSvg(element.src) || getNextPieceFallback(element.src, currentTry)
+              : getNextPieceFallback(element.src, currentTry);
+            if (!fallback) return;
+            element.dataset.fallbackTry = String(currentTry + 1);
+            element.src = fallback;
+          }}
+        />
+      )}
+      {showAnalysisMoveIcon && isLastMoveTo && moveClassification && (
+        <img
+          src={toPublicPath(`icons/${moveClassification}.png`)}
+          alt="move-classification"
+          className="absolute top-0.5 right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 pointer-events-none z-10"
+          draggable="false"
         />
       )}
       {isValidMove && !piece && (
@@ -41,6 +118,16 @@ const Square = memo(({
       )}
       {isValidMove && piece && (
         <div className="absolute inset-0 rounded-full border-[6px] border-red-500 pointer-events-none opacity-80"></div>
+      )}
+      {showCoordinates && colIndex === 0 && (
+        <span className="absolute left-1.5 top-1 text-[10px] font-semibold text-black/45 pointer-events-none">
+          {rankLabel}
+        </span>
+      )}
+      {showCoordinates && rowIndex === 7 && (
+        <span className="absolute right-1.5 bottom-1 text-[10px] font-semibold text-black/45 pointer-events-none uppercase">
+          {fileLabel}
+        </span>
       )}
     </div>
   );
@@ -54,11 +141,27 @@ export default function ChessBoardView({
   validMoves, 
   kingInCheckPos,
   lastMove,
+  moveClassification,
   onSquareClick,
   rankLabels,
   fileLabels,
   gameState,
-  isReviewMode
+  isReviewMode,
+  enableDrag = true,
+  activePieceImages = defaultPieceImages,
+  boardTheme = {
+    light: '#eaf2f6',
+    dark: '#a8c1cf',
+    lastMoveLight: '#bce4f0',
+    lastMoveDark: '#7ba7bd',
+  },
+  showCoordinates = true,
+  showLegalMoves = true,
+  highlightLastMove = true,
+  pieceAnimation = true,
+  dragAnimation = true,
+  compactMode = false,
+  showAnalysisMoveIcon = true,
 }) {
   const {
     dragState,
@@ -76,6 +179,8 @@ export default function ChessBoardView({
 
   // Add global mouse and touch event listeners
   useEffect(() => {
+    if (!enableDrag) return;
+
     const handleGlobalMouseMove = (e) => handleMouseMove(e);
     const handleGlobalMouseUp = (e) => handleMouseUpGlobal(e);
     const handleGlobalTouchMove = (e) => handleMouseMove(e);
@@ -92,7 +197,7 @@ export default function ChessBoardView({
       window.removeEventListener('touchmove', handleGlobalTouchMove);
       window.removeEventListener('touchend', handleGlobalTouchEnd);
     };
-  }, [handleMouseMove, handleMouseUpGlobal]);
+  }, [enableDrag, handleMouseMove, handleMouseUpGlobal]);
 
   // Memoize valid moves Set for O(1) lookup
   const validMoveSet = useMemo(() => {
@@ -117,7 +222,15 @@ export default function ChessBoardView({
       <div 
         ref={boardRef}
         className="grid grid-cols-8 gap-0 shadow-2xl rounded-lg overflow-hidden relative"
-        style={{ userSelect: 'none', WebkitUserSelect: 'none', willChange: 'contents' }}
+        style={{
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          willChange: 'contents',
+          backgroundImage: boardTheme.boardImage ? `url('${boardTheme.boardImage}')` : 'none',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+        }}
       >
         {board.map((row, rowIndex) =>
           row.map((piece, colIndex) => {
@@ -126,6 +239,7 @@ export default function ChessBoardView({
             const isValidMove = isValidMoveSquare(rowIndex, colIndex);
             const isKingInCheck = kingInCheckPos?.row === rowIndex && kingInCheckPos?.col === colIndex;
             const isLastMove = isLastMoveSquare(rowIndex, colIndex);
+            const isLastMoveTo = lastMove?.to?.row === rowIndex && lastMove?.to?.col === colIndex;
             const isBeingDragged = dragState.isDragging && 
                                    dragState.fromRow === rowIndex && 
                                    dragState.fromCol === colIndex;
@@ -133,12 +247,17 @@ export default function ChessBoardView({
             // Determine background color
             let bgColor;
             if (isKingInCheck) {
-              bgColor = 'bg-red-500 animate-pulse';
-            } else if (isLastMove) {
-              bgColor = isDark ? 'bg-[#7ba7bd]' : 'bg-[#bce4f0]';
+              bgColor = '#ef4444';
+            } else if (highlightLastMove && isLastMove) {
+              bgColor = isDark ? boardTheme.lastMoveDark : boardTheme.lastMoveLight;
             } else {
-              bgColor = isDark ? 'bg-[#a8c1cf]' : 'bg-[#eaf2f6]';
+              bgColor = isDark ? boardTheme.dark : boardTheme.light;
             }
+
+            const bgStyle = {
+              backgroundColor: boardTheme.boardImage ? hexToRgba(bgColor, 0.72) : bgColor,
+              animation: isKingInCheck ? 'pulse 1.2s infinite' : 'none',
+            };
             
             return (
               <Square
@@ -146,13 +265,22 @@ export default function ChessBoardView({
                 rowIndex={rowIndex}
                 colIndex={colIndex}
                 piece={piece}
-                bgColor={bgColor}
+                bgStyle={bgStyle}
+                showCoordinates={showCoordinates}
+                rankLabel={rankLabels?.[rowIndex]}
+                fileLabel={fileLabels?.[colIndex]}
                 isSelected={isSelected}
-                isValidMove={isValidMove}
+                isValidMove={showLegalMoves && isValidMove}
+                isLastMoveTo={isLastMoveTo}
+                moveClassification={moveClassification}
+                showAnalysisMoveIcon={showAnalysisMoveIcon}
                 isBeingDragged={isBeingDragged}
+                pieceAnimation={pieceAnimation}
+                compactMode={compactMode}
+                activePieceImages={activePieceImages}
                 onSquareClick={onSquareClick}
-                onMouseDown={handleMouseDown}
-                onMouseUp={handleMouseUp}
+                onMouseDown={enableDrag ? handleMouseDown : NOOP}
+                onMouseUp={enableDrag ? handleMouseUp : NOOP}
               />
             );
           })
@@ -160,9 +288,9 @@ export default function ChessBoardView({
       </div>
 
       {/* Floating drag piece layer */}
-      {dragState.isDragging && dragState.piece && (
+      {enableDrag && dragState.isDragging && dragState.piece && (
         <div
-          className="fixed pointer-events-none z-[9999]"
+          className="fixed pointer-events-none z-9999"
           style={{
             left: dragState.currentX - 35,
             top: dragState.currentY - 35,
@@ -173,11 +301,21 @@ export default function ChessBoardView({
           }}
         >
           <img
-            src={pieceImages[dragState.piece]}
+            src={activePieceImages[dragState.piece] || defaultPieceImages[dragState.piece]}
             alt={dragState.piece}
             className="w-14 h-14 object-contain select-none"
             draggable="false"
-            style={{ margin: '8px', pointerEvents: 'none' }}
+            style={{ margin: '8px', pointerEvents: 'none', transition: dragAnimation ? 'transform 0.08s linear' : 'none' }}
+            onError={(event) => {
+              const element = event.currentTarget;
+              const currentTry = Number(element.dataset.fallbackTry || 0);
+              const fallback = currentTry === 0
+                ? getPngFallbackFromSvg(element.src) || getNextPieceFallback(element.src, currentTry)
+                : getNextPieceFallback(element.src, currentTry);
+              if (!fallback) return;
+              element.dataset.fallbackTry = String(currentTry + 1);
+              element.src = fallback;
+            }}
           />
         </div>
       )}

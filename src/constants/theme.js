@@ -1,4 +1,6 @@
 // Theme constants for easy customization
+import { toAssetPath } from '../utils/assetPath.js';
+
 export const theme = {
   // Main colors
   background: 'bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-600',
@@ -38,21 +40,52 @@ export const theme = {
   checkSquare: 'bg-red-500 animate-pulse',
 };
 
-// Piece images mapping
-export const pieceImages = {
-  'bR': '/assets/piecesSVG/Rook_Dark.svg',
-  'bN': '/assets/piecesSVG/Knight_Dark.svg',
-  'bB': '/assets/piecesSVG/Bishop_Dark.svg',
-  'bQ': '/assets/piecesSVG/Queen_Dark.svg',
-  'bK': '/assets/piecesSVG/King_Dark.svg',
-  'bp': '/assets/piecesSVG/Pawn_Dark.svg',
-  'wR': '/assets/piecesSVG/Rook_Light.svg',
-  'wN': '/assets/piecesSVG/Knight_Light.svg',
-  'wB': '/assets/piecesSVG/Bishop_Light.svg',
-  'wQ': '/assets/piecesSVG/Queen_Light.svg',
-  'wK': '/assets/piecesSVG/King_Light.svg',
-  'wp': '/assets/piecesSVG/Pawn_Light.svg',
+export const PIECE_STYLE_TO_SET = {
+  neo: 'staunty',
+  classic: 'tatiana',
+  alpha: 'alpha',
+  minimal: 'pixel',
 };
+
+const normalizePieceCode = (pieceCode) => {
+  if (pieceCode === 'wp') return 'wP';
+  if (pieceCode === 'bp') return 'bP';
+  return pieceCode;
+};
+
+const IMAGE_EXTENSIONS = ['svg', 'png', 'webp', 'jpg', 'jpeg'];
+
+const findBestPieceFile = (files = [], normalizedCode) => {
+  if (!Array.isArray(files) || files.length === 0) return null;
+  const lowerMap = new Map(files.map((file) => [String(file).toLowerCase(), file]));
+  const lowerCode = normalizedCode.toLowerCase();
+  const candidates = [
+    ...IMAGE_EXTENSIONS.map((ext) => `${normalizedCode}.${ext}`),
+    ...IMAGE_EXTENSIONS.map((ext) => `${lowerCode}.${ext}`),
+  ];
+
+  for (const candidate of candidates) {
+    const hit = lowerMap.get(candidate.toLowerCase());
+    if (hit) return hit;
+  }
+  return null;
+};
+
+export const buildPieceImages = (pieceSetName = PIECE_STYLE_TO_SET.neo, pieceFiles = null) => {
+  const setName = pieceSetName || PIECE_STYLE_TO_SET.neo;
+  const keys = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bp', 'wR', 'wN', 'wB', 'wQ', 'wK', 'wp'];
+  return keys.reduce((acc, key) => {
+    const normalizedCode = normalizePieceCode(key);
+    const discovered = findBestPieceFile(pieceFiles, normalizedCode);
+    acc[key] = discovered
+      ? toAssetPath(`piece/${setName}/${discovered}`)
+      : toAssetPath(`piece/${setName}/${normalizedCode}.svg`);
+    return acc;
+  }, {});
+};
+
+// Default board set
+export const pieceImages = buildPieceImages();
 
 // Time control options
 export const timeControlOptions = {

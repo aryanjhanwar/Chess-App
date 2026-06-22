@@ -1,14 +1,14 @@
 /* Outer container - dark gray rounded */
 .eval-container-outer {
-  width: 30px;
-  height: 100%;
+  width: 32px;
+  height: min(560px, 100vw);
   display: flex;
   justify-content: center;
   align-items: stretch;
   margin-right: 8px;
-  background: #2c2c2c;
-  border-radius: 8px;
-  padding: 4px;
+  background: transparent;
+  border-radius: 5px;
+  padding: 0;
 }
 
 /* Inner track - lighter gray */
@@ -16,75 +16,58 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background: #3d3d3d;
-  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 5px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Black section (top) - fills from top when black has advantage */
 .eval-black-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
-  background: #000000;
-  transition: height 0.3s ease-out;
-  z-index: 1;
-  border-radius: 6px 6px 0 0;
+  background: #424242;
+  transition: height 1s;
+  border-radius: 5px 5px 0 0;
 }
 
-/* White section (bottom) - grows upward when white has advantage */
 .eval-white-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+  position: relative;
   width: 100%;
   background: #ffffff;
-  transition: height 0.3s ease-out;
-  z-index: 2;
-  border-radius: 0 0 6px 6px;
+  transition: height 1s;
+  border-radius: 0 0 5px 5px;
+  display: flex;
+  align-items: flex-end;
 }
 
-/* Evaluation number - shown in smaller section */
 .eval-number {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
+  display: block;
+  text-align: center;
+  width: 100%;
+  font-size: 1rem;
   font-weight: 600;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #888888;
-  z-index: 3;
-  pointer-events: none;
-  line-height: 1;
+  line-height: 1.2;
 }
 
-/* Thinking animation - subtle pulse */
-.eval-white-fill.thinking {
-  animation: pulse 1.5s ease-in-out infinite;
+.eval-number-dark {
+  color: #ffffff;
 }
 
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.85;
-  }
+.eval-number-light {
+  color: #000000;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .eval-container-outer {
-    width: 26px;
+    width: 25px;
+    height: min(92vw, 440px);
     margin-right: 6px;
-    padding: 3px;
   }
 
   .eval-number {
-    font-size: 10px;
+    font-size: 0.9rem;
   }
 }

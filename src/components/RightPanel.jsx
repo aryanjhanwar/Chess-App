@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import GamePanel from './GamePanel';
-import ReviewModeControls from './ReviewModeControls';
-import { DifficultyLevelGrid, TimeControlSections, getDifficultyLabel } from './start/StartPanelSections';
-import { SURFACE_BG, SURFACE_BG_HOVER, createHoverBackgroundHandlers, getTabButtonStyle } from './start/styleHelpers';
+import { DifficultyLevelGrid, TimeControlSections } from './start/StartPanelSections';
+import { getDifficultyLabel } from './start/difficulty';
+import { SURFACE_BG, SURFACE_BG_HOVER, createHoverBackgroundHandlers } from './start/styleHelpers';
 import { PrimaryActionButton, SurfaceActionButton } from './start/ActionButtons';
 
 export default function RightPanel({ 
@@ -26,26 +26,41 @@ export default function RightPanel({
   onReviewEnd,
   onReviewTogglePlay,
   onExitReview,
+  onGameAnalysis,
+  isMultiplayerGame = false,
+  canUseInGameActions = true,
+  canStartGame = true,
+  canPlayFriend = true,
   onPlayFriend,
   onSelectGameMode,
-  canGoBack,
-  canGoForward,
   gameMode,
   computerDifficulty,
   onComputerDifficultyChange,
   playerColor,
   onPlayerColorChange,
-  highlightResign = false
+  highlightResign = false,
+  onActiveTopOptionChange,
+  isEngineReady = true,
 }) {
-  const [activeTab, setActiveTab] = useState('newGame');
   const [showTimeOptions, setShowTimeOptions] = useState(false);
   const [showComputerSettings, setShowComputerSettings] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [activeTopOption, setActiveTopOption] = useState(gameStarted ? 'moves' : 'setup');
+  const startTimeoutRef = useRef(null);
 
-  const tabs = [
-    { key: 'newGame', label: 'New Game' },
-    { key: 'games', label: 'Games' },
-    { key: 'players', label: 'Players' }
+  const effectiveTopOption = gameStarted ? 'moves' : activeTopOption;
+
+  const handleTopOptionChange = (nextOption) => {
+    setActiveTopOption(nextOption);
+    if (typeof onActiveTopOptionChange === 'function') {
+      onActiveTopOptionChange(nextOption);
+    }
+  };
+
+  const topOptionItems = [
+    { key: 'setup', label: 'Setup', enabled: !gameStarted },
+    { key: 'moves', label: 'Moves', enabled: true },
+    { key: 'chat', label: 'Chat', enabled: false },
   ];
 
   const handleTimeSelect = (control) => {
@@ -54,45 +69,78 @@ export default function RightPanel({
   };
 
   const handleStartGame = () => {
+    if (startTimeoutRef.current) {
+      clearTimeout(startTimeoutRef.current);
+      startTimeoutRef.current = null;
+    }
     setIsStarting(true);
-    setTimeout(() => {
+    startTimeoutRef.current = setTimeout(() => {
       onStartGame();
       setIsStarting(false);
+      startTimeoutRef.current = null;
     }, 300);
   };
+
+  useEffect(() => {
+    return () => {
+      if (startTimeoutRef.current) {
+        clearTimeout(startTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div 
       className="h-screen p-4 flex flex-col text-white w-full lg:w-[420px]" 
       style={{ 
-        background: 'rgba(0, 150, 200, 0.55)', 
+        background: 'rgba(8, 16, 26, 0.34)', 
         backdropFilter: 'blur(14px)', 
         border: '1px solid rgba(255,255,255,0.12)', 
         borderRadius: '14px'
       }}
     >
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className="flex-1 py-2.5 rounded-lg font-semibold transition-all"
-              style={getTabButtonStyle(isActive)}
-              {...createHoverBackgroundHandlers(SURFACE_BG, SURFACE_BG_HOVER, !isActive)}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Future top slot for setup/moves/piece options. */}
+      <div data-panel-slot="future-options-top" className="shrink-0 mb-3">
+        <div className="grid grid-cols-3 gap-2">
+          {topOptionItems.map((item) => {
+            const isActive = item.key === effectiveTopOption;
+            const isEnabled = item.enabled;
+            const isComingSoon = item.key === 'chat';
+            const isLockedDuringGame = item.key === 'setup' && gameStarted;
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                disabled={!isEnabled}
+                onClick={() => {
+                  if (isEnabled) handleTopOptionChange(item.key);
+                }}
+                className="py-2 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  background: isActive ? 'rgba(127,191,63,0.45)' : 'rgba(255,255,255,0.12)',
+                  border: isActive ? '1px solid #7fbf3f' : '1px solid rgba(255,255,255,0.1)',
+                  color: 'white',
+                  opacity: isEnabled ? 1 : 0.5,
+                  cursor: isEnabled ? 'pointer' : 'not-allowed',
+                }}
+                title={
+                  isComingSoon
+                    ? (isMultiplayerGame && item.key === 'chat'
+                      ? 'Chat (coming soon)'
+                      : `${item.label} (coming soon)`)
+                    : (isLockedDuringGame ? 'Setup is available after clicking New Game' : item.label)
+                }
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* New Game Tab */}
-      {activeTab === 'newGame' && (
-        <div className="flex-1 overflow-y-auto flex flex-col gap-3">
-          {gameStarted ? (
+      <div className="flex-1 overflow-y-auto flex flex-col gap-3">
+          {effectiveTopOption === 'moves' ? (
             <>
               <GamePanel 
                 moveHistory={moveHistory} 
@@ -101,24 +149,20 @@ export default function RightPanel({
                 onOfferDraw={onOfferDraw}
                 gameState={gameState}
                 isReviewMode={isReviewMode}
-                showReviewControls={false}
+                canUseInGameActions={canUseInGameActions}
+                showReviewControls={true}
+                reviewIndex={reviewIndex}
+                reviewHistoryLength={reviewHistoryLength}
+                isPlaying={isPlaying}
+                onReviewPrevious={onReviewPrevious}
+                onReviewNext={onReviewNext}
+                onReviewStart={onReviewStart}
+                onReviewEnd={onReviewEnd}
+                onReviewTogglePlay={onReviewTogglePlay}
+                onExitReview={onExitReview}
+                onGameAnalysis={onGameAnalysis}
                 highlightResign={highlightResign}
               />
-              {isReviewMode && (
-                <ReviewModeControls
-                  reviewIndex={reviewIndex}
-                  reviewHistoryLength={reviewHistoryLength}
-                  isPlaying={isPlaying}
-                  canGoBack={canGoBack}
-                  canGoForward={canGoForward}
-                  onPrevious={onReviewPrevious}
-                  onNext={onReviewNext}
-                  onGoToStart={onReviewStart}
-                  onGoToEnd={onReviewEnd}
-                  onTogglePlay={onReviewTogglePlay}
-                  onExit={onExitReview}
-                />
-              )}
               {/* Fix #25: always-visible New Game button when game is in progress */}
               {!isReviewMode && (
                 <SurfaceActionButton
@@ -131,6 +175,15 @@ export default function RightPanel({
             </>
           ) : (
             <>
+              {gameStarted && (
+                <div
+                  className="rounded-xl p-3 text-sm text-white/90"
+                  style={{ background: 'rgba(255,255,255,0.10)' }}
+                >
+                  Setup is locked during an active game. Click New Game in Moves tab to return to setup.
+                </div>
+              )}
+
               {/* Selected Time Control */}
               <div 
                 onClick={() => setShowTimeOptions(!showTimeOptions)}
@@ -272,17 +325,23 @@ export default function RightPanel({
 
                   <PrimaryActionButton
                     onClick={handleStartGame}
-                    disabled={isStarting}
+                    disabled={isStarting || !canStartGame || (gameMode === 'computer' && !isEngineReady)}
                     style={{
                       background: 'linear-gradient(#8ec85c, #6fae3c)',
                       transform: isStarting ? 'scale(0.95)' : 'scale(1)',
-                      opacity: isStarting ? 0.8 : 1
+                      opacity: (isStarting || !canStartGame || (gameMode === 'computer' && !isEngineReady)) ? 0.8 : 1,
+                      cursor: (canStartGame && (gameMode !== 'computer' || isEngineReady)) ? 'pointer' : 'not-allowed'
                     }}
                   >
-                    {isStarting ? 'Starting...' : 'Start Game'}
+                    {isStarting ? 'Starting...' : (gameMode === 'computer' && !isEngineReady) ? 'Loading Engine...' : 'Start Game'}
                   </PrimaryActionButton>
                   <SurfaceActionButton
                     onClick={onPlayFriend}
+                    disabled={!canPlayFriend}
+                    style={{
+                      opacity: canPlayFriend ? 1 : 0.6,
+                      cursor: canPlayFriend ? 'pointer' : 'not-allowed'
+                    }}
                   >
                     Play a Friend
                   </SurfaceActionButton>
@@ -291,39 +350,6 @@ export default function RightPanel({
             </>
           )}
         </div>
-      )}
-
-      {/* Games Tab */}
-      {activeTab === 'games' && (
-        <div className="flex-1 space-y-3">
-          <div 
-            className="p-4 rounded-xl font-semibold cursor-pointer"
-            style={{background: SURFACE_BG}}
-            {...createHoverBackgroundHandlers(SURFACE_BG, SURFACE_BG_HOVER)}
-          >
-            Previous Game #1
-          </div>
-          <div 
-            className="p-4 rounded-xl font-semibold cursor-pointer"
-            style={{background: SURFACE_BG}}
-            {...createHoverBackgroundHandlers(SURFACE_BG, SURFACE_BG_HOVER)}
-          >
-            Previous Game #2
-          </div>
-        </div>
-      )}
-
-      {/* Players Tab */}
-      {activeTab === 'players' && (
-        <div className="flex-1">
-          <div className="p-4 rounded-xl" style={{background: SURFACE_BG}}>
-            <div className="text-center font-semibold">Player 1</div>
-          </div>
-          <div className="p-4 rounded-xl mt-3" style={{background: SURFACE_BG}}>
-            <div className="text-center font-semibold">Player 2</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

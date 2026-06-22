@@ -17,6 +17,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Enable SharedArrayBuffer for multi-threaded Stockfish WASM
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+
 # Ensure WebAssembly serves with the expected content type
 [[headers]]
   for = "/*.wasm"

@@ -21,6 +21,38 @@
 	}
 }
 
+@keyframes settingsEnter {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 28px, 0) scale(0.985);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+}
+
+@keyframes pieceDrift {
+	0% {
+		transform: translate3d(0, 0, 0) rotate(0deg);
+	}
+	25% {
+		transform: translate3d(calc(var(--piece-drift-x, 40px) * 0.45), calc(var(--piece-drift-y, -55px) * 0.55), 0)
+			rotate(calc(var(--piece-spin, 14deg) * 0.45));
+	}
+	55% {
+		transform: translate3d(var(--piece-drift-x, 40px), var(--piece-drift-y, -55px), 0)
+			rotate(var(--piece-spin, 14deg));
+	}
+	80% {
+		transform: translate3d(calc(var(--piece-drift-x, 40px) * -0.3), calc(var(--piece-drift-y, -55px) * 0.2), 0)
+			rotate(calc(var(--piece-spin, 14deg) * -0.35));
+	}
+	100% {
+		transform: translate3d(0, 0, 0) rotate(0deg);
+	}
+}
+
 .animate-orb-drift {
 	animation: orbDrift 9s ease-in-out infinite;
 }
@@ -31,4 +63,39 @@
 
 .animate-rise-in {
 	animation: riseIn 560ms ease-out both;
+}
+
+.mode-bg-piece {
+	position: absolute;
+	transform-origin: center;
+	will-change: transform;
+	animation-name: pieceDrift;
+	animation-timing-function: ease-in-out;
+	animation-iteration-count: infinite;
+}
+
+.settings-panel {
+	animation: settingsEnter 280ms ease-out both;
+}
+
+@media (max-width: 640px) {
+	.mode-bg-piece {
+		opacity: 0.24 !important;
+	}
+}
+
+/* Tabular numbers for timer/clock displays to prevent layout shift */
+.font-mono {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+	.mode-bg-piece,
+	.animate-orb-drift,
+	.animate-orb-drift-delayed,
+	.animate-rise-in,
+	.settings-panel {
+		animation: none !important;
+	}
 }

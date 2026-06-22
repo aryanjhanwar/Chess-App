@@ -1,4 +1,4 @@
-import { pieceImages, theme } from '../constants/theme';
+import { pieceImages } from '../constants/theme';
 
 export default function PawnPromotionUI({ 
   promotionSquare, 

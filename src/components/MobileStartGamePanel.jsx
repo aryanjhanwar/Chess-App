@@ -1,5 +1,6 @@
 import { useState, memo } from 'react';
-import { DifficultyLevelGrid, TimeControlSections, getDifficultyLabel } from './start/StartPanelSections';
+import { DifficultyLevelGrid, TimeControlSections } from './start/StartPanelSections';
+import { getDifficultyLabel } from './start/difficulty';
 import { SURFACE_BG, createHoverBackgroundHandlers } from './start/styleHelpers';
 import { PrimaryActionButton } from './start/ActionButtons';
 
@@ -10,7 +11,8 @@ function MobileStartGamePanel({
   gameMode,
   onSelectGameMode,
   computerDifficulty,
-  onComputerDifficultyChange
+  onComputerDifficultyChange,
+  isEngineReady = true
 }) {
   const [showTimeOptions, setShowTimeOptions] = useState(false);
   const [showComputerOptions, setShowComputerOptions] = useState(false);
@@ -124,10 +126,16 @@ function MobileStartGamePanel({
       {/* Start Game Button */}
       <PrimaryActionButton
         onClick={onStartGame}
+        disabled={gameMode === 'computer' && !isEngineReady}
         className="w-full py-3 rounded-lg font-bold text-white text-lg transition-all"
-        style={{background: 'linear-gradient(135deg, #7fbf3f 0%, #5a9e2a 100%)', boxShadow: '0 4px 12px rgba(127, 191, 63, 0.4)'}}
+        style={{
+          background: 'linear-gradient(135deg, #7fbf3f 0%, #5a9e2a 100%)', 
+          boxShadow: '0 4px 12px rgba(127, 191, 63, 0.4)',
+          opacity: (gameMode === 'computer' && !isEngineReady) ? 0.6 : 1,
+          cursor: (gameMode === 'computer' && !isEngineReady) ? 'not-allowed' : 'pointer'
+        }}
       >
-        ▶ Start Game
+        {gameMode === 'computer' && !isEngineReady ? '⏳ Loading Engine...' : '▶ Start Game'}
       </PrimaryActionButton>
     </div>
   );

@@ -280,7 +280,6 @@ export function getAttackSquares(attackBitboard) {
   
   while (bb !== 0n) {
     const lsb = bb & -bb; // Isolate LSB
-    const square = 63 - Math.clz32(Number(lsb >> 32n)) - (lsb >> 32n ? 32 : 0);
     
     // Alternative: use loop
     let sq = 0;

@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +27,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated reports (should not be in source control)
+lint.json
+lint-report.txt
+analysis.txt
+update.txt
+
+# Temp scripts
+.tmp-*.cjs

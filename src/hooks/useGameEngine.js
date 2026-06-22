@@ -10,7 +10,6 @@ import { createStartingPosition } from '../engine/bitboard/position.js';
 import {
   generateLegalMoves_v2,
   makeMove_v2,
-  unmakeMove_v2,
   isInCheck
 } from '../engine/bitboard/moveGen.js';
 import {
@@ -333,6 +332,64 @@ export function useGameEngine() {
   }, [bumpRender]);
 
   /**
+   * Sync the bitboard position from a full UCI move list.
+   * Useful when another controller (ex: chess.js analysis state) is the source of truth.
+   */
+  const syncFromUciMoves = useCallback((uciMoves = []) => {
+    positionRef.current = createStartingPosition();
+    historyRef.current = [];
+    capturedRef.current = { w: [], b: [] };
+
+    for (const uci of uciMoves) {
+      const legalMovesMap = buildLegalMovesMap(positionRef.current);
+      const move = uciToV2Move(uci, legalMovesMap);
+      if (!move) break;
+
+      const savedState = makeMove_v2(positionRef.current, move);
+      const cap = savedState.capturedPiece;
+      if (cap !== -1) {
+        const capColor = cap <= WK ? 'w' : 'b';
+        capturedRef.current = {
+          ...capturedRef.current,
+          [capColor]: [...capturedRef.current[capColor], PIECE_CHARS[cap]],
+        };
+      }
+
+      const lastMove = {
+        from: { row: move.from >> 3, col: move.from & 7 },
+        to: { row: move.to >> 3, col: move.to & 7 },
+        piece: PIECE_CHARS[move.piece],
+        wasCapture: cap !== -1 || EP_TAGS.has(move.tag),
+        isCastling: CASTLING_TAGS.has(move.tag),
+        isDoublePawnPush: move.tag === TAG_DoublePawnWhite || move.tag === TAG_DoublePawnBlack,
+        isEnPassant: EP_TAGS.has(move.tag),
+      };
+
+      historyRef.current = [
+        ...historyRef.current,
+        {
+          move,
+          savedState,
+          notation: '',
+          fen: positionRef.current.toFEN(),
+          displayPieces: positionToDisplayPieces(positionRef.current),
+          capturedPieces: {
+            w: [...capturedRef.current.w],
+            b: [...capturedRef.current.b],
+          },
+          inCheck: isInCheck(positionRef.current),
+          kingInCheckPos: null,
+          lastMoveInfo: lastMove,
+          sideToMove: positionRef.current.sideToMove === 0 ? 'w' : 'b',
+          moveHistory: [],
+        },
+      ];
+    }
+
+    bumpRender();
+  }, [bumpRender]);
+
+  /**
    * Build review-mode snapshots.
    * Index 0 = initial position, index N = state after move N.
    */
@@ -377,6 +434,7 @@ export function useGameEngine() {
     // Actions
     executeMove,
     resetGame,
+    syncFromUciMoves,
     getReviewSnapshots,
 
     // Refs (escape hatch for Stockfish / review)

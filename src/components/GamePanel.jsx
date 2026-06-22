@@ -1,3 +1,4 @@
+import { useRef, useEffect, useMemo, useState } from 'react';
 import ReviewModeControls from './ReviewModeControls';
 
 // Fix #13: accept review mode props so mobile gets review controls too
@@ -17,19 +18,48 @@ export default function GamePanel({
   onReviewEnd,
   onReviewTogglePlay,
   onExitReview,
+  onGameAnalysis,
   showReviewControls = true,
   mobileLayout = false,
   highlightResign = false
 }) {
-  // Group moves into pairs (white move, black move)
-  const movePairs = [];
-  for (let i = 0; i < moveHistory.length; i += 2) {
-    movePairs.push({
-      moveNumber: Math.floor(i / 2) + 1,
-      white: moveHistory[i],
-      black: moveHistory[i + 1] || ''
-    });
-  }
+  const moveHistoryEndRef = useRef(null);
+  const resignConfirmTimeoutRef = useRef(null);
+  const [confirmResign, setConfirmResign] = useState(false);
+
+  // Group moves into pairs (white move, black move) — memoized
+  const movePairs = useMemo(() => {
+    const pairs = [];
+    for (let i = 0; i < moveHistory.length; i += 2) {
+      pairs.push({
+        moveNumber: Math.floor(i / 2) + 1,
+        white: moveHistory[i],
+        black: moveHistory[i + 1] || ''
+      });
+    }
+    return pairs;
+  }, [moveHistory]);
+
+  // Auto-scroll move history to the latest move
+  useEffect(() => {
+    if (moveHistoryEndRef.current) {
+      const prefersReducedMotion = typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      moveHistoryEndRef.current.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [moveHistory.length]);
+
+  useEffect(() => {
+    return () => {
+      if (resignConfirmTimeoutRef.current) {
+        clearTimeout(resignConfirmTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const gameInfoSection = (
     <div className="backdrop-blur-sm rounded-xl p-3 mb-3" style={{background: 'rgba(255,255,255,0.12)'}}>
@@ -91,6 +121,7 @@ export default function GamePanel({
               )}
             </div>
           ))}
+          <div ref={moveHistoryEndRef} />
         </div>
       )}
     </div>
@@ -99,18 +130,41 @@ export default function GamePanel({
   const gameControlsSection = gameState === 'playing' ? (
     <div className={mobileLayout ? 'flex gap-2 mb-3' : 'flex gap-2 mt-3'}>
       <button
-        onClick={onResign}
-        className={`flex-1 backdrop-blur-sm rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 text-white ${highlightResign ? 'ring-2 ring-yellow-300 animate-pulse shadow-lg shadow-yellow-300/35' : ''}`}
-        style={{background: highlightResign ? 'rgba(220,38,38,0.78)' : 'rgba(220,38,38,0.5)'}}
+        onClick={() => {
+          if (!confirmResign) {
+            setConfirmResign(true);
+            if (resignConfirmTimeoutRef.current) {
+              clearTimeout(resignConfirmTimeoutRef.current);
+            }
+            resignConfirmTimeoutRef.current = setTimeout(() => {
+              setConfirmResign(false);
+              resignConfirmTimeoutRef.current = null;
+            }, 3000); // Auto-reset after 3s
+          } else {
+            if (resignConfirmTimeoutRef.current) {
+              clearTimeout(resignConfirmTimeoutRef.current);
+              resignConfirmTimeoutRef.current = null;
+            }
+            setConfirmResign(false);
+            onResign();
+          }
+        }}
+        className={`flex-1 backdrop-blur-sm rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 text-white ${highlightResign || confirmResign ? 'ring-2 ring-yellow-300 animate-pulse shadow-lg shadow-yellow-300/35' : ''}`}
+        style={{background: highlightResign || confirmResign ? 'rgba(220,38,38,0.78)' : 'rgba(220,38,38,0.5)'}}
         onMouseEnter={(e) => {
-          if (!highlightResign) e.currentTarget.style.background = 'rgba(220,38,38,0.7)';
+          if (!highlightResign && !confirmResign) e.currentTarget.style.background = 'rgba(220,38,38,0.7)';
         }}
         onMouseLeave={(e) => {
-          if (!highlightResign) e.currentTarget.style.background = 'rgba(220,38,38,0.5)';
+          if (!highlightResign && !confirmResign) e.currentTarget.style.background = 'rgba(220,38,38,0.5)';
+          if (resignConfirmTimeoutRef.current) {
+            clearTimeout(resignConfirmTimeoutRef.current);
+            resignConfirmTimeoutRef.current = null;
+          }
+          setConfirmResign(false); // Reset if mouse leaves
         }}
       >
-        <span>🏳️</span>
-        Resign
+        <span>{confirmResign ? '⚠️' : '🏳️'}</span>
+        {confirmResign ? 'Confirm Resign?' : 'Resign'}
       </button>
       <button
         onClick={onOfferDraw}
@@ -136,6 +190,7 @@ export default function GamePanel({
       onGoToEnd={onReviewEnd}
       onTogglePlay={onReviewTogglePlay}
       onExit={onExitReview}
+      onGameAnalysis={onGameAnalysis}
     />
   ) : null;
 
@@ -143,10 +198,10 @@ export default function GamePanel({
     <div className="h-full flex flex-col">
       {mobileLayout ? (
         <>
-          {reviewControlsSection}
           {gameControlsSection}
           {gameInfoSection}
           {moveHistorySection}
+          {reviewControlsSection}
         </>
       ) : (
         <>

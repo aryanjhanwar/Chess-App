@@ -26,11 +26,7 @@ import {
 } from './constants.js';
 
 import {
-  getBit,
-  setBit,
-  countBits,
   getSetBits,
-  squareToAlgebraic,
   bitScanForward
 } from './utils.js';
 
@@ -698,7 +694,6 @@ export function generateLegalMoves_v2(position) {
 
   // â”€â”€ castling (only when not in check) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (checkCount === 0) {
-    const enemySide = isWhite ? 1 : 0;
     if (isWhite) {
       if ((position.castlingRights & 1) && kingSq === E1 &&
           (position.bitboards[WR] & SQUARE_BBS[H1]) !== 0n &&

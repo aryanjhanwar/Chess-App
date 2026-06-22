@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Sidebar({ onSelectGameMode, onOpenSettings, onRefresh, onPlaySelect }) {
   const [showPlayMenu, setShowPlayMenu] = useState(false);
@@ -7,18 +7,38 @@ export default function Sidebar({ onSelectGameMode, onOpenSettings, onRefresh, o
   const handleMouseEnter = () => {
     if (menuTimeoutRef.current) {
       clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
     }
     setShowPlayMenu(true);
   };
 
   const handleMouseLeave = () => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+    }
     menuTimeoutRef.current = setTimeout(() => {
       setShowPlayMenu(false);
+      menuTimeoutRef.current = null;
     }, 200); // 200ms delay before hiding
   };
 
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="h-screen w-[150px] bg-[#0a87b3] flex flex-col items-center py-4 px-3">
+    <div
+      className="h-screen w-[150px] flex flex-col items-center py-4 px-3"
+      style={{
+        background: 'rgba(8, 16, 26, 0.34)',
+        backdropFilter: 'blur(10px)',
+        borderRight: '1px solid rgba(255,255,255,0.10)',
+      }}
+    >
       {/* Logo */}
       <div className="mb-8">
         <div className="text-white font-black text-2xl flex items-center gap-1">
@@ -34,7 +54,7 @@ export default function Sidebar({ onSelectGameMode, onOpenSettings, onRefresh, o
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div className="flex items-center gap-3 text-white font-semibold py-3 px-4 rounded-lg bg-[#0e8db7] cursor-pointer">
+          <div className="flex items-center gap-3 text-white font-semibold py-3 px-4 rounded-lg cursor-pointer" style={{ background: 'rgba(255,255,255,0.14)' }}>
             <span className="text-xl">♟️</span>
             <span>Play</span>
           </div>
@@ -75,15 +95,15 @@ export default function Sidebar({ onSelectGameMode, onOpenSettings, onRefresh, o
 
       {/* Bottom Menu */}
       <div className="space-y-2 text-white opacity-90">
-        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#0e8db7] cursor-pointer" onClick={onRefresh}>
+        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/20 cursor-pointer" onClick={onRefresh}>
           <span>🔄</span>
           <span className="text-sm">Refresh</span>
         </div>
-        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#0e8db7] cursor-pointer" onClick={onOpenSettings}>
+        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/20 cursor-pointer" onClick={onOpenSettings}>
           <span>⚙️</span>
           <span className="text-sm">Settings</span>
         </div>
-        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#0e8db7] cursor-pointer">
+        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/20 cursor-pointer">
           <span>❓</span>
           <span className="text-sm">Support</span>
         </div>

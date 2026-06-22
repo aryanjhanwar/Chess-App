@@ -9,7 +9,7 @@ const TIME_CONTROL_SECTIONS = [
 
 const DIFFICULTY_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-export const getDifficultyLabel = (level) => {
+const getDifficultyLabel = (level) => {
   const labels = {
     1: 'Beginner',
     2: 'Novice',
@@ -27,7 +27,6 @@ export const getDifficultyLabel = (level) => {
 };
 
 export function TimeControlSections({
-  selectedTimeControl,
   onSelectTimeControl,
   sectionClassName = 'font-bold text-sm mb-2 text-white',
   buttonClassName,
