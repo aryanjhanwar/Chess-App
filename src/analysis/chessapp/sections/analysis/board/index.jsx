@@ -94,8 +94,8 @@ function BitboardAnalysisBoard() {
     if (!node) return;
     const updateSize = () => {
       if (node.offsetHeight > 0 && node.offsetWidth > 0) {
-        setBoardHeight(node.offsetHeight);
-        setBoardWidth(node.offsetWidth);
+        setBoardHeight((prev) => Math.abs(prev - node.offsetHeight) > 10 ? node.offsetHeight : prev);
+        setBoardWidth((prev) => Math.abs(prev - node.offsetWidth) > 10 ? node.offsetWidth : prev);
       }
     };
     updateSize();
@@ -272,13 +272,13 @@ function BitboardAnalysisBoard() {
       <div className="mb-2">
         {renderPlayerRow(topDisplayName, isWhiteBottom ? 'Black' : 'White')}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-stretch justify-center w-full gap-2">
         <EvaluationBar
           height={boardHeight}
           boardOrientation={isWhiteBottom ? Color.White : Color.Black}
           currentPositionAtom={currentPositionAtom}
         />
-        <div ref={boardContainerRef} className="relative">
+        <div ref={boardContainerRef} className="relative h-[calc(100vh-200px)] max-h-[800px] aspect-square">
           <ChessBoardView
             board={boardForRender}
             selectedSquare={selectedForRender}

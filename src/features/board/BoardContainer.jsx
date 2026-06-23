@@ -4,8 +4,8 @@ import ChessBoardView from '../../components/ChessBoardView';
 
 export default function BoardContainer({
   effectiveBoardFlipped,
-  playerNames,
-  activeCapturedPieces,
+  playerNames = { white: 'White', black: 'Black' },
+  activeCapturedPieces = { w: [], b: [] },
 
   whiteTime,
   blackTime,
@@ -42,9 +42,9 @@ export default function BoardContainer({
   uiSettings,
 }) {
   return (
-    <>
+    <div className="flex flex-col items-center w-full max-w-[600px]">
       {/* Top Bar */}
-      <div className="w-full max-w-[min(560px,100vw)] flex items-center justify-between mb-2">
+      <div className="w-full flex items-center justify-between mb-2">
         <div className="flex items-center gap-3 flex-1">
           <PlayerCard
             color={effectiveBoardFlipped ? 'w' : 'b'}
@@ -55,23 +55,22 @@ export default function BoardContainer({
             }
             capturedPieces={
               effectiveBoardFlipped
-                ? activeCapturedPieces.b
-                : activeCapturedPieces.w
+                ? (activeCapturedPieces?.b ?? [])
+                : (activeCapturedPieces?.w ?? [])
             }
             opponentCapturedPieces={
               effectiveBoardFlipped
-                ? activeCapturedPieces.w
-                : activeCapturedPieces.b
+                ? (activeCapturedPieces?.w ?? [])
+                : (activeCapturedPieces?.b ?? [])
             }
           />
         </div>
 
         <div
-          className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-lg sm:text-xl transition-all font-mono min-w-[100px] sm:min-w-[120px] text-center ${
-            (effectiveBoardFlipped ? whiteTime : blackTime) < 10000
+          className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-lg sm:text-xl transition-all font-mono min-w-[100px] sm:min-w-[120px] text-center ${(effectiveBoardFlipped ? whiteTime : blackTime) < 10000
               ? 'bg-red-600 text-white shadow-lg shadow-red-500/50'
               : 'bg-gray-700 text-gray-100'
-          }`}
+            }`}
         >
           {formatTime(effectiveBoardFlipped ? whiteTime : blackTime)}
         </div>
@@ -80,7 +79,7 @@ export default function BoardContainer({
       {/* Multiplayer Notice */}
       {isMultiplayerGame && isMultiplayerStarted && (
         <div
-          className="w-full max-w-[min(560px,100vw)] mb-2 text-center text-xs sm:text-sm text-white/90 backdrop-blur-sm rounded-lg py-2 px-3"
+          className="w-full mb-2 text-center text-xs sm:text-sm text-white/90 backdrop-blur-sm rounded-lg py-2 px-3"
           style={{ background: 'rgba(0,0,0,0.2)' }}
         >
           {multiplayerNotice ||
@@ -89,12 +88,12 @@ export default function BoardContainer({
       )}
 
       {/* Board + Eval */}
-      <div className="relative flex flex-row items-center">
+      <div className="relative flex flex-row items-stretch w-full">
         <EvaluationBar
           evaluation={evalValue}
           mate={mateValue}
-          depth={stockfish.depth}
-          isThinking={stockfish.isThinking}
+          depth={stockfish?.depth ?? 0}
+          isThinking={stockfish?.isThinking ?? false}
           isBoardFlipped={effectiveBoardFlipped}
           currentTurn={displayTurn}
         />
@@ -133,7 +132,7 @@ export default function BoardContainer({
       </div>
 
       {/* Bottom Bar */}
-      <div className="w-full max-w-[min(560px,100vw)] flex items-center justify-between mt-2">
+      <div className="w-full flex items-center justify-between mt-2">
         <div className="flex items-center gap-3 flex-1">
           <PlayerCard
             color={effectiveBoardFlipped ? 'b' : 'w'}
@@ -144,27 +143,26 @@ export default function BoardContainer({
             }
             capturedPieces={
               effectiveBoardFlipped
-                ? activeCapturedPieces.w
-                : activeCapturedPieces.b
+                ? (activeCapturedPieces?.w ?? [])
+                : (activeCapturedPieces?.b ?? [])
             }
             opponentCapturedPieces={
               effectiveBoardFlipped
-                ? activeCapturedPieces.b
-                : activeCapturedPieces.w
+                ? (activeCapturedPieces?.b ?? [])
+                : (activeCapturedPieces?.w ?? [])
             }
           />
         </div>
 
         <div
-          className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-lg sm:text-xl transition-all font-mono min-w-[100px] sm:min-w-[120px] text-center ${
-            (effectiveBoardFlipped ? blackTime : whiteTime) < 10000
+          className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-lg sm:text-xl transition-all font-mono min-w-[100px] sm:min-w-[120px] text-center ${(effectiveBoardFlipped ? blackTime : whiteTime) < 10000
               ? 'bg-red-600 text-white shadow-lg shadow-red-500/50'
               : 'bg-gray-700 text-gray-100'
-          }`}
+            }`}
         >
           {formatTime(effectiveBoardFlipped ? blackTime : whiteTime)}
         </div>
       </div>
-    </>
+    </div>
   );
 }

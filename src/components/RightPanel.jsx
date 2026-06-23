@@ -91,7 +91,7 @@ export default function RightPanel({
 
   return (
     <div 
-      className="h-screen p-4 flex flex-col text-white w-full lg:w-[420px]" 
+      className="hidden lg:flex h-screen p-4 flex-col text-white shrink-0 w-[420px]" 
       style={{ 
         background: 'rgba(8, 16, 26, 0.34)', 
         backdropFilter: 'blur(14px)', 

@@ -78,14 +78,14 @@ const Square = memo(({
       onMouseUp={(e) => onMouseUp(e, rowIndex, colIndex)}
       onTouchStart={(e) => onMouseDown(e, rowIndex, colIndex, piece)}
       onTouchEnd={(e) => onMouseUp(e, rowIndex, colIndex)}
-      className={`w-[calc(min(70px,(100vw-2rem)/8))] h-[calc(min(70px,(100vw-2rem)/8))] ${compactMode ? 'sm:w-[62px] sm:h-[62px]' : 'sm:w-[70px] sm:h-[70px]'} flex items-center justify-center cursor-pointer relative ${isSelected ? 'ring-4 ring-yellow-400 ring-inset' : ''} hover:opacity-90`}
-      style={{ ...bgStyle, transition: 'opacity 0.1s ease-out' }}
+      className={`w-full h-full flex items-center justify-center cursor-pointer relative`}
+      style={{ ...bgStyle }}
     >
       {piece && (
         <img 
           src={activePieceImages[piece] || defaultPieceImages[piece]} 
           alt={piece}
-          className={`w-[85%] h-[85%] ${compactMode ? 'sm:w-12 sm:h-12' : 'sm:w-14 sm:h-14'} object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
+          className={`absolute inset-[7.5%] w-[85%] h-[85%] z-10 object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
           draggable="false"
           style={{
             pointerEvents: 'none',
@@ -114,20 +114,23 @@ const Square = memo(({
         />
       )}
       {isValidMove && !piece && (
-        <div className="w-5 h-5 bg-green-600 rounded-full opacity-70 pointer-events-none"></div>
+        <div className="w-5 h-5 bg-green-600 rounded-full opacity-70 pointer-events-none z-20"></div>
       )}
       {isValidMove && piece && (
-        <div className="absolute inset-0 rounded-full border-[6px] border-red-500 pointer-events-none opacity-80"></div>
+        <div className="absolute inset-0 rounded-full border-[6px] border-red-500 pointer-events-none opacity-80 z-20"></div>
       )}
       {showCoordinates && colIndex === 0 && (
-        <span className="absolute left-1.5 top-1 text-[10px] font-semibold text-black/45 pointer-events-none">
+        <span className="absolute left-1.5 top-1 text-[10px] font-semibold text-black/45 pointer-events-none z-20">
           {rankLabel}
         </span>
       )}
       {showCoordinates && rowIndex === 7 && (
-        <span className="absolute right-1.5 bottom-1 text-[10px] font-semibold text-black/45 pointer-events-none uppercase">
+        <span className="absolute right-1.5 bottom-1 text-[10px] font-semibold text-black/45 pointer-events-none uppercase z-20">
           {fileLabel}
         </span>
+      )}
+      {isSelected && (
+        <div className="absolute inset-0 ring-4 ring-yellow-400 ring-inset pointer-events-none z-20"></div>
       )}
     </div>
   );
@@ -218,10 +221,10 @@ export default function ChessBoardView({
   const isLastMoveSquare = (row, col) => lastMoveSet.has(`${row}-${col}`);
 
   return (
-    <div className="flex flex-col relative">
+    <div className="flex flex-col relative w-full flex-1">
       <div 
         ref={boardRef}
-        className="grid grid-cols-8 gap-0 shadow-2xl rounded-lg overflow-hidden relative"
+        className="w-full aspect-square grid grid-cols-8 grid-rows-8 gap-0 shadow-2xl rounded-lg overflow-hidden relative"
         style={{
           userSelect: 'none',
           WebkitUserSelect: 'none',

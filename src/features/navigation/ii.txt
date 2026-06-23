@@ -1,0 +1,238 @@
+chess-engine-ui/
+│
+├── public/
+│   ├── engines/
+│   │   └── stockfish-17/
+│   │       ├── stockfish-17.js
+│   │       ├── stockfish-17-lite.js
+│   │       ├── stockfish-17-single.js
+│   │       ├── stockfish-17-lite-single.js
+│   │       └── *.wasm
+│   │
+│   ├── asset-manifest.json
+│   ├── boards/
+│   ├── pieces/
+│   └── sounds/
+│
+├── src/
+│   │
+│   ├── App.jsx
+│   ├── main.jsx
+│   ├── index.css
+│   │
+│   ├── components/
+│   │   ├── Sidebar.jsx
+│   │   ├── RightPanel.jsx
+│   │   ├── GamePanel.jsx
+│   │   ├── MobileStartGamePanel.jsx
+│   │   ├── ChessBoardView.jsx
+│   │   ├── PawnPromotionUI.jsx
+│   │   ├── GameOverModal.jsx
+│   │   ├── DrawOfferModal.jsx
+│   │   ├── SettingsModal.jsx
+│   │   ├── GameSettingsModal.jsx
+│   │   ├── PlayerCard.jsx
+│   │   ├── EvaluationBar.jsx
+│   │   ├── ModeSelectScreen.jsx
+│   │   ├── MultiplayerLobbyScreen.jsx
+│   │   │
+│   │   └── start/
+│   │       ├── StartPanelSections.jsx
+│   │       ├── ActionButtons.jsx
+│   │       ├── difficulty.js
+│   │       └── styleHelpers.js
+│   │
+│   ├── hooks/
+│   │   ├── useGameEngine.js
+│   │   ├── useStockfish.js
+│   │   ├── useChessTimer.js
+│   │   ├── useReviewMode.js
+│   │   ├── usePawnPromotion.js
+│   │   ├── useP2PGame.js
+│   │   └── useDragAndDrop.js
+│   │
+│   ├── engine/
+│   │   ├── index.js
+│   │   ├── notation.js
+│   │   ├── pgn.js
+│   │   │
+│   │   └── bitboard/
+│   │       ├── attacks.js
+│   │       ├── constants.js
+│   │       ├── init.js
+│   │       ├── inBetween.js
+│   │       ├── magic.js
+│   │       ├── moveGen.js
+│   │       ├── position.js
+│   │       └── utils.js
+│   │
+│   ├── utils/
+│   │   ├── helpers.js
+│   │   ├── sounds.js
+│   │   ├── stockfishUtils.js
+│   │   └── assetPath.js
+│   │
+│   ├── constants/
+│   │   ├── theme.js
+│   │   ├── boardThemes.js
+│   │   └── uiPresets.js
+│   │
+│   └── assets/
+│
+├── package.json
+├── vite.config.js
+├── eslint.config.js
+├── README.md
+└── .gitignore
+src/
+└── analysis/
+    └── chessapp/
+        └── sections/
+            │
+            ├── analysis/
+            │   ├── states.js
+            │   │
+            │   ├── hooks/
+            │   │   └── useCurrentPosition.js
+            │   │
+            │   ├── board/
+            │   │   └── index.jsx
+            │   │
+            │   ├── panelHeader/
+            │   │   ├── index.jsx
+            │   │   ├── gamePanel.jsx
+            │   │   ├── loadGame.jsx
+            │   │   └── analyzeButton.jsx
+            │   │
+            │   ├── panelToolbar/
+            │   │   ├── index.jsx
+            │   │   ├── flipBoardButton.jsx
+            │   │   ├── goToLastPositionButton.jsx
+            │   │   ├── nextMoveButton.jsx
+            │   │   └── saveButton.jsx
+            │   │
+            │   └── panelBody/
+            │       │
+            │       ├── analysisTab/
+            │       │   └── ...
+            │       │
+            │       ├── classificationTab/
+            │       │   └── ...
+            │       │
+            │       └── graphTab/
+            │           └── ...
+            │
+            ├── engineSettings/
+            │   ├── arrowOptions.jsx
+            │   ├── engineSettingsButton.jsx
+            │   └── engineSettingsDialog.jsx
+            │
+            ├── loadGame/
+            │   │
+            │   ├── gameItem/
+            │   │   ├── dateChip.jsx
+            │   │   ├── gameResultChip.jsx
+            │   │   ├── index.jsx
+            │   │   ├── movesNbChip.jsx
+            │   │   └── timeControlChip.jsx
+            │   │
+            │   ├── chessComInput.jsx
+            │   ├── gamePgnInput.jsx
+            │   ├── lichessInput.jsx
+            │   ├── loadGameButton.jsx
+            │   └── loadGameDialog.jsx
+            │
+            ├── play/
+            │   │
+            │   ├── gameSettings/
+            │   │   ├── gameSettingsButton.jsx
+            │   │   └── gameSettingsDialog.jsx
+            │   │
+            │   ├── board.jsx
+            │   ├── gameInProgress.jsx
+            │   ├── gameRecap.jsx
+            │   ├── states.js
+            │   └── undoMoveButton.jsx
+            │
+            └── layout/
+                └── index.jsx
+
+                chessapp/
+│
+├── pages/
+│   └── index.jsx
+│
+├── components/
+│   ├── LinearProgressBar.jsx
+│   ├── pageTitle.jsx
+│   ├── slider.jsx
+│   ├── prettyMoveSan/
+│   │   └── index.jsx
+│   └── board/
+│       ├── index.jsx
+│       ├── capturedPieces.jsx
+│       ├── evaluationBar.jsx
+│       ├── playerHeader.jsx
+│       └── squareRenderer.jsx
+│
+├── hooks/
+│   ├── useAtomLocalStorage.js
+│   ├── useChessActions.js
+│   ├── useDebounce.js
+│   ├── useEngine.js
+│   ├── useGameData.js
+│   ├── useGameDatabase.js
+│   ├── useLocalStorage.js
+│   ├── usePlayersData.js
+│   └── useScreenSize.js
+│
+├── lib/
+│   ├── helpers.js
+│   ├── math.js
+│   ├── publicPath.js
+│   ├── sentry.js
+│   ├── sounds.js
+│   ├── chess.js
+│   ├── chessCom.js
+│   ├── lichess.js
+│   ├── firebase.js
+│   └── engine/
+│       ├── shared.js
+│       ├── worker.js
+│       ├── uciEngine.js
+│       ├── stockfish11.js
+│       ├── stockfish16.js
+│       ├── stockfish16_1.js
+│       ├── stockfish17.js
+│       ├── accuracy.js
+│       ├── estimateElo.js
+│       ├── moveClassification.js
+│       ├── parseResults.js
+│       └── winPercentage.js
+│
+├── sections/
+│   ├── analysis/
+│   ├── engineSettings/
+│   ├── loadGame/
+│   ├── play/
+│   └── layout/
+│
+├── data/
+│   └── openings.js
+│
+├── types/
+│   ├── enums.js
+│   ├── engine.js
+│   ├── eval.js
+│   ├── game.js
+│   ├── chessCom.js
+│   └── lichess.js
+│
+└── shims/
+    ├── fontLocal.js
+    ├── head.jsx
+    ├── image.jsx
+    ├── link.jsx
+    ├── router.js
+    ├── sentry.js
+    └── sentryReact.js

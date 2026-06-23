@@ -32,7 +32,7 @@ export default function Sidebar({ onSelectGameMode, onOpenSettings, onRefresh, o
 
   return (
     <div
-      className="h-screen w-[150px] flex flex-col items-center py-4 px-3"
+      className="hidden lg:flex h-screen w-[150px] shrink-0 flex-col items-center py-4 px-3"
       style={{
         background: 'rgba(8, 16, 26, 0.34)',
         backdropFilter: 'blur(10px)',
