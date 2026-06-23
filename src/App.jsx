@@ -637,8 +637,6 @@ function App() {
     setWhiteAccuracy,
     setBlackAccuracy,
     setShowGameOverUI,
-    reviewIndex,
-    isReviewMode,
     analysisRunIdRef,
   });
 

@@ -17,8 +17,6 @@ export function useReviewController({
   setWhiteAccuracy,
   setBlackAccuracy,
   setShowGameOverUI,
-  reviewIndex,
-  isReviewMode,
   analysisRunIdRef,
 }) {
   const applyReviewState = useCallback((state) => {
