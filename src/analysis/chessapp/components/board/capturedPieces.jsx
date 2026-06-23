@@ -1,5 +1,5 @@
 import { jsx, jsxs } from "react/jsx-runtime";
-import { getCapturedPieces, getMaterialDifference } from "@analysis/lib/chess";
+import { getCapturedPieces, getMaterialDifference } from "@/shared/chess/analysis/chess";
 import { Color } from "@analysis/types/enums";
 import { Box, Grid, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";

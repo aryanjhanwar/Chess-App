@@ -12,7 +12,7 @@ import { useChessActions } from "@analysis/hooks/useChessActions";
 import { useEffect, useMemo } from "react";
 import { useScreenSize } from "@analysis/hooks/useScreenSize";
 import { useEngine } from "@analysis/hooks/useEngine";
-import { uciMoveParams } from "@analysis/lib/chess";
+import { uciMoveParams } from "@/shared/chess/analysis/chess";
 import Board from "@analysis/components/board";
 import { useGameData } from "@analysis/hooks/useGameData";
 import { usePlayersData } from "@analysis/hooks/usePlayersData";
@@ -43,7 +43,7 @@ function BoardContainer() {
     return () => {
       engine?.stopAllCurrentJobs();
     };
-  }, [gameFen, isGameInProgress]);
+  }, [gameFen, isGameInProgress, engine, playerColor, isGameFinished, engineElo, playMove]);
   const boardSize = useMemo(() => {
     const width = screenSize.width;
     const height = screenSize.height;

@@ -13,7 +13,7 @@ import { useGameDatabase } from "@analysis/hooks/useGameDatabase";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Chess } from "chess.js";
 import { useRouter } from "@analysis/shims/router";
-import { fetchLichessGame } from "@analysis/lib/lichess";
+import { fetchLichessGame } from "@/shared/chess/analysis/lichess";
 const ANALYSIS_HANDOFF_KEY = "chessapp_analysis_handoff_v1";
 function LoadGame() {
   const router = useRouter();

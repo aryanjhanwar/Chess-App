@@ -3,8 +3,13 @@ import {
   upsertMultiPvCandidate,
   finalizeMultiPv,
   normalizeAnalysisResult,
-} from '../../utils/analysisProtocol.js';
-import { getLichessEval } from '../lichess.js';
+} from '@/utils/analysisProtocol.js';
+import { getLichessEval, getLichessEvalForEngine } from '../analysis/lichess.js';
+import { getResultProperty, parseEvaluationResults } from './helpers/parseResults.js';
+import { computeAccuracy } from '../analysis/accuracy.js';
+import { getIsStalemate, getWhoIsCheckmated } from '../analysis/chess.js';
+import { getMovesClassification } from '../analysis/moveClassification.js';
+import { computeEstimatedElo } from '../analysis/estimateElo.js';
 import { Stockfish11 } from './stockfish11.js';
 import { Stockfish16 } from './stockfish16.js';
 import { Stockfish16_1 } from './stockfish16_1.js';
@@ -28,6 +33,7 @@ const DEFAULT_STATE = {
 export class UciEngine {
   constructor({ engineProfile = 'auto', onStateChange } = {}) {
     this.engineProfile = engineProfile;
+    this.name = engineProfile;
     this.onStateChange = onStateChange;
 
     this.enginePath = '';
@@ -348,18 +354,19 @@ export class UciEngine {
   }
 
   async stopAllCurrentJobs() {
+    const jobs = this.workerQueue;
     this.workerQueue = [];
-    if (!this.workers.length) return;
-
-    const workersNb = this.workers.length;
-    const workersToRestart = [...this.workers];
-    this.workers = [];
-
-    for (const worker of workersToRestart) {
-      this.terminateWorker(worker);
+    for (const job of jobs) {
+      job.reject?.(new Error('Job cancelled'));
     }
 
-    await Promise.all(new Array(workersNb).fill(0).map(() => this.addNewWorker()));
+    if (!this.workers.length) return;
+
+    await this.sendCommandsToEachWorker(['stop', 'isready'], 'readyok');
+
+    for (const worker of this.workers) {
+      worker.isReady = true;
+    }
   }
 
   async init() {
@@ -407,13 +414,21 @@ export class UciEngine {
 
   throwErrorIfNotReady() {
     if (!this.isReady || !this.workers.length) {
-      throw new Error('Engine is not ready');
+      throw new Error(`${this.name || 'Engine'} is not ready`);
     }
+  }
+
+  getIsReady() {
+    return this.isReady;
+  }
+
+  shutdown() {
+    this.destroy();
   }
 
   async tryCloudEval(fen, depth, multiPv) {
     try {
-      const cloud = await getLichessEval(fen, multiPv);
+      const cloud = await getLichessEvalForEngine(fen, multiPv);
       if (!cloud) return null;
 
       if (cloud.depth < depth) {
@@ -622,5 +637,190 @@ export class UciEngine {
     this.currentFen = '';
 
     this.setState({ ...DEFAULT_STATE });
+  }
+
+  async setElo(elo) {
+    if (elo === this.elo) return;
+    if (elo < 1320 || elo > 3190) {
+      throw new Error(`Invalid Elo value : ${elo}`);
+    }
+    await this.sendCommandsToEachWorker(
+      ["setoption name UCI_LimitStrength value true", "isready"],
+      "readyok"
+    );
+    await this.sendCommandsToEachWorker(
+      [`setoption name UCI_Elo value ${elo}`, "isready"],
+      "readyok"
+    );
+    this.elo = elo;
+  }
+
+  async evaluateGame({
+    fens,
+    uciMoves,
+    depth = 16,
+    multiPv = this.currentMultiPv,
+    setEvaluationProgress,
+    playersRatings,
+    workersNb = 1
+  }) {
+    this.throwErrorIfNotReady();
+    this.isReady = false;
+    setEvaluationProgress?.(1);
+    await this.setMultiPv(multiPv);
+    await this.sendCommandsToEachWorker(["ucinewgame", "isready"], "readyok");
+    await this.setWorkersNb(workersNb);
+    const positions = new Array(fens.length);
+    let completed = 0;
+    const updateEval = (index, positionEval) => {
+      completed++;
+      positions[index] = positionEval;
+      const progress = completed / fens.length;
+      setEvaluationProgress?.(99 - Math.exp(-4 * progress) * 99);
+    };
+    await Promise.all(
+      fens.map(async (fen, i) => {
+        const whoIsCheckmated = getWhoIsCheckmated(fen);
+        if (whoIsCheckmated) {
+          updateEval(i, {
+            lines: [
+              {
+                pv: [],
+                depth: 0,
+                multiPv: 1,
+                mate: whoIsCheckmated === "w" ? -1 : 1
+              }
+            ]
+          });
+          return;
+        }
+        const isStalemate = getIsStalemate(fen);
+        if (isStalemate) {
+          updateEval(i, {
+            lines: [
+              {
+                pv: [],
+                depth: 0,
+                multiPv: 1,
+                cp: 0
+              }
+            ]
+          });
+          return;
+        }
+        const result = await this.evaluatePositionDirect(fen, depth, workersNb);
+        updateEval(i, result);
+      })
+    );
+    await this.setWorkersNb(1);
+    this.isReady = true;
+    const positionsWithClassification = getMovesClassification(
+      positions,
+      uciMoves,
+      fens
+    );
+    const accuracy = computeAccuracy(positions);
+    const estimatedElo = computeEstimatedElo(
+      positions,
+      playersRatings?.white,
+      playersRatings?.black
+    );
+    return {
+      positions: positionsWithClassification,
+      estimatedElo,
+      accuracy,
+      settings: {
+        engine: this.engineProfile || "Stockfish",
+        date: new Date().toISOString(),
+        depth,
+        multiPv
+      }
+    };
+  }
+
+  async evaluatePositionDirect(fen, depth = 16, workersNb) {
+    if (workersNb < 2) {
+      const lichessEval = await getLichessEval(fen, this.currentMultiPv);
+      if (lichessEval && lichessEval.lines && lichessEval.lines.length >= this.currentMultiPv && lichessEval.lines[0].depth >= depth) {
+        return lichessEval;
+      }
+    }
+    const results = await this.sendCommands(
+      [`position fen ${fen}`, `go depth ${depth}`],
+      "bestmove"
+    );
+    return parseEvaluationResults(results, fen);
+  }
+
+  async evaluatePositionWithUpdate({
+    fen,
+    depth = 16,
+    multiPv = this.currentMultiPv,
+    setPartialEval
+  }) {
+    this.throwErrorIfNotReady();
+    const lichessEvalPromise = getLichessEval(fen, multiPv);
+    await this.stopAllCurrentJobs();
+    await this.setMultiPv(multiPv);
+
+    let localEngineActive = true;
+
+    const onNewMessage = (messages) => {
+      if (!localEngineActive || !setPartialEval) return;
+      const parsedResults = parseEvaluationResults(messages, fen);
+      setPartialEval(parsedResults);
+    };
+
+    // Start local engine evaluation immediately
+    const localEnginePromise = (async () => {
+      try {
+        const results = await this.sendCommands(
+          [`position fen ${fen}`, `go depth ${depth}`],
+          "bestmove",
+          onNewMessage
+        );
+        localEngineActive = false;
+        return parseEvaluationResults(results, fen);
+      } catch (error) {
+        localEngineActive = false;
+        throw error;
+      }
+    })();
+
+    // Await Lichess Cloud Eval concurrently
+    try {
+      const lichessEval = await lichessEvalPromise;
+      if (
+        lichessEval &&
+        lichessEval.lines &&
+        lichessEval.lines.length >= multiPv &&
+        lichessEval.lines[0].depth >= depth
+      ) {
+        localEngineActive = false;
+        await this.stopAllCurrentJobs();
+        setPartialEval?.(lichessEval);
+        return lichessEval;
+      }
+    } catch {
+      // Ignore Lichess failures and let local engine complete
+    }
+
+    return await localEnginePromise;
+  }
+
+  async getEngineNextMove(fen, elo, depth = 16) {
+    this.throwErrorIfNotReady();
+    await this.stopAllCurrentJobs();
+    await this.setElo(elo);
+    const results = await this.sendCommands(
+      [`position fen ${fen}`, `go depth ${depth}`],
+      "bestmove"
+    );
+    const moveResult = results.find((result) => result.startsWith("bestmove"));
+    const move = getResultProperty(moveResult ?? "", "bestmove");
+    if (!move) {
+      throw new Error("No move found");
+    }
+    return move === "(none)" ? void 0 : move;
   }
 }

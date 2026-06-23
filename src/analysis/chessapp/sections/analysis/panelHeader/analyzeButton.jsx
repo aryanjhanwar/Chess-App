@@ -11,7 +11,7 @@ import {
   savedEvalsAtom
 } from "../states";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { getEvaluateGameParams } from "@analysis/lib/chess";
+import { getEvaluateGameParams } from "@/shared/chess/analysis/chess";
 import { useGameDatabase } from "@analysis/hooks/useGameDatabase";
 import { LoadingButton } from "@mui/lab";
 import { useEngine } from "@analysis/hooks/useEngine";

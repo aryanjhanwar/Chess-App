@@ -1,6 +1,6 @@
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { useLocalStorage } from "@analysis/hooks/useLocalStorage";
-import { getLichessUserRecentGames } from "@analysis/lib/lichess";
+import { getLichessUserRecentGames } from "@/shared/chess/analysis/lichess";
 import {
   CircularProgress,
   FormControl,

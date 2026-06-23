@@ -1,4 +1,4 @@
-import { ceilsNumber } from "@analysis/lib/math";
+import { ceilsNumber } from "@/shared/chess/analysis/math";
 const getPositionWinPercentage = (position) => {
   return getLineWinPercentage(position.lines[0]);
 };

@@ -1,5 +1,5 @@
 import { Chess } from "chess.js";
-import { getPositionWinPercentage } from "./engine/helpers/winPercentage";
+import { getPositionWinPercentage } from "@/shared/chess/analysis/winPercentage";
 import { Color } from "@analysis/types/enums";
 const getEvaluateGameParams = (game) => {
   const history = game.history({ verbose: true });

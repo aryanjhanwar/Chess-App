@@ -6,12 +6,12 @@
  */
 
 import { useRef, useState, useMemo, useCallback } from 'react';
-import { createStartingPosition } from '../engine/bitboard/position.js';
+import { createStartingPosition } from '@/shared/chess/engine/bitboard/position.js';
 import {
   generateLegalMoves_v2,
   makeMove_v2,
   isInCheck
-} from '../engine/bitboard/moveGen.js';
+} from '@/shared/chess/engine/bitboard/moveGen.js';
 import {
   WP, WN, WB, WR, WQ, WK,
   BP, BN, BB, BR, BQ, BK,
@@ -24,9 +24,9 @@ import {
   TAG_WCaptureKnightPromotion, TAG_WCaptureBishopPromotion,
   TAG_WCaptureQueenPromotion, TAG_WCaptureRookPromotion,
   TAG_DoublePawnWhite, TAG_DoublePawnBlack,
-} from '../engine/bitboard/constants.js';
-import { bitScanForward } from '../engine/bitboard/utils.js';
-import { getNotationV2 } from '../engine/notation.js';
+} from '@/shared/chess/engine/bitboard/constants.js';
+import { bitScanForward } from '@/shared/chess/engine/bitboard/utils.js';
+import { getNotationV2 } from '@/shared/chess/engine/notation.js';
 
 // ========================================
 // PIECE STRING MAPPING (bitboard index → React piece code)

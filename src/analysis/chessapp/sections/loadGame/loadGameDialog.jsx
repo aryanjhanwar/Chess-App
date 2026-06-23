@@ -1,6 +1,6 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { useGameDatabase } from "@analysis/hooks/useGameDatabase";
-import { getGameFromPgn } from "@analysis/lib/chess";
+import { getGameFromPgn } from "@/shared/chess/analysis/chess";
 import { GameOrigin } from "@analysis/types/enums";
 import {
   MenuItem,

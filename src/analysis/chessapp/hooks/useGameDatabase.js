@@ -1,4 +1,4 @@
-import { formatGameToDatabase } from "@analysis/lib/chess";
+import { formatGameToDatabase } from "@/shared/chess/analysis/chess";
 import { openDB } from "idb";
 import { atom, useAtom } from "jotai";
 import { useRouter } from "@analysis/shims/router";

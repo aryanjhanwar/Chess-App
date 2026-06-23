@@ -26,8 +26,8 @@ import {
 import ArrowOptions from "./arrowOptions";
 import { useAtomLocalStorage } from "@analysis/hooks/useAtomLocalStorage";
 import { useEffect } from "react";
-import { isEngineSupported } from "@analysis/lib/engine/shared";
-import { Stockfish16_1 } from "@analysis/lib/engine/stockfish16_1";
+import { isEngineSupported } from "@/shared/chess/stockfish/shared";
+import { Stockfish16_1 } from "@/shared/chess/stockfish/stockfish16_1";
 import { useAtom } from "jotai";
 import { boardHueAtom, pieceSetAtom } from "@analysis/components/board/states";
 import Image from "@analysis/shims/image";
@@ -37,7 +37,7 @@ import {
   PIECE_SETS,
   STRONGEST_ENGINE
 } from "@analysis/constants";
-import { getRecommendedWorkersNb } from "@analysis/lib/engine/worker";
+import { getRecommendedWorkersNb } from "@/shared/chess/stockfish/worker";
 import { toPublicPath } from "@analysis/lib/publicPath";
 function EngineSettingsDialog({ open, onClose }) {
   const [depth, setDepth] = useAtomLocalStorage(

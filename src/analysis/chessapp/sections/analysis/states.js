@@ -1,5 +1,5 @@
 import { DEFAULT_ENGINE } from "@analysis/constants";
-import { getRecommendedWorkersNb } from "@analysis/lib/engine/worker";
+import { getRecommendedWorkersNb } from "@/shared/chess/stockfish/worker";
 import { Chess } from "chess.js";
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";

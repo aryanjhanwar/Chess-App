@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { UciEngine } from '../lib/engine/uciEngine.js';
+import { UciEngine } from '@/shared/chess/stockfish/uciEngine';
 
 export const useEngine = (engineProfile = 'auto') => {
   const engineRef = useRef(null);

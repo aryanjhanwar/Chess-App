@@ -1,4 +1,4 @@
-import { formatUciPv } from "@analysis/lib/chess";
+import { formatUciPv } from "@/shared/chess/analysis/chess";
 const parseEvaluationResults = (results, fen) => {
   const parsedResults = {
     lines: []

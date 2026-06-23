@@ -3,8 +3,8 @@ import {
   getPositionWinPercentage
 } from "./winPercentage";
 import { MoveClassification } from "@analysis/types/enums";
-import { openings } from "@analysis/data/openings";
-import { getIsPieceSacrifice, isSimplePieceRecapture } from "@analysis/lib/chess";
+import { openings } from "@/shared/chess/openings/openings";
+import { getIsPieceSacrifice, isSimplePieceRecapture } from "@/shared/chess/analysis/chess";
 const getMovesClassification = (rawPositions, uciMoves, fens) => {
   const positionsWinPercentage = rawPositions.map(getPositionWinPercentage);
   let currentOpening = void 0;

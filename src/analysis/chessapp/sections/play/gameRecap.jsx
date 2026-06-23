@@ -3,7 +3,7 @@ import { useAtomValue } from "jotai";
 import { gameAtom, isGameInProgressAtom, playerColorAtom } from "./states";
 import { Button, Grid, Typography } from "@mui/material";
 import { Color } from "@analysis/types/enums";
-import { setGameHeaders } from "@analysis/lib/chess";
+import { setGameHeaders } from "@/shared/chess/analysis/chess";
 import { useGameDatabase } from "@analysis/hooks/useGameDatabase";
 import { useRouter } from "@analysis/shims/router";
 function GameRecap() {

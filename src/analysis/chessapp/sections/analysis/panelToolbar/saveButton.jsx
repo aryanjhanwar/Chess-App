@@ -5,7 +5,7 @@ import { Grid, IconButton, Tooltip } from "@mui/material";
 import { useAtomValue } from "jotai";
 import { useRouter } from "@analysis/shims/router";
 import { boardAtom, gameAtom, gameEvalAtom } from "../states";
-import { getGameToSave } from "@analysis/lib/chess";
+import { getGameToSave } from "@/shared/chess/analysis/chess";
 function SaveButton() {
   const game = useAtomValue(gameAtom);
   const board = useAtomValue(boardAtom);

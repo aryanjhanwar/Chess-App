@@ -3,7 +3,7 @@ import {
   getHarmonicMean,
   getStandardDeviation,
   getWeightedMean
-} from "@analysis/lib/math";
+} from "@/shared/chess/analysis/math";
 import { getPositionWinPercentage } from "./winPercentage";
 const computeAccuracy = (positions) => {
   const positionsWinPercentage = positions.map(getPositionWinPercentage);

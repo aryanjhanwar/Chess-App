@@ -2,7 +2,7 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import { ListItem, Skeleton, Typography } from "@mui/material";
 import { useAtomValue } from "jotai";
 import { boardAtom } from "../../../states";
-import { getLineEvalLabel, moveLineUciToSan } from "@analysis/lib/chess";
+import { getLineEvalLabel, moveLineUciToSan } from "@/shared/chess/analysis/chess";
 import { useChessActions } from "@analysis/hooks/useChessActions";
 import PrettyMoveSan from "@analysis/components/prettyMoveSan";
 function LineEvaluation({ line }) {

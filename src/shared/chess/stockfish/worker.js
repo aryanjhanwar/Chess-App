@@ -1,5 +1,5 @@
 import { isIosDevice, isMobileDevice } from './shared.js';
-import { toPublicPath } from '../../utils/assetPath.js';
+import { toPublicPath } from '@/utils/assetPath.js';
 
 export const getEngineWorker = (enginePath) => {
   const worker = new Worker(toPublicPath(enginePath));

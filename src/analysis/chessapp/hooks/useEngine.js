@@ -1,8 +1,8 @@
-import { isWasmSupported } from "@analysis/lib/engine/shared";
-import { Stockfish11 } from "@analysis/lib/engine/stockfish11";
-import { Stockfish16 } from "@analysis/lib/engine/stockfish16";
-import { Stockfish16_1 } from "@analysis/lib/engine/stockfish16_1";
-import { Stockfish17 } from "@analysis/lib/engine/stockfish17";
+import { isWasmSupported } from "@/shared/chess/stockfish/shared";
+import { Stockfish11 } from "@/shared/chess/stockfish/stockfish11";
+import { Stockfish16 } from "@/shared/chess/stockfish/stockfish16";
+import { Stockfish16_1 } from "@/shared/chess/stockfish/stockfish16_1";
+import { Stockfish17 } from "@/shared/chess/stockfish/stockfish17";
 import { EngineName } from "@analysis/types/enums";
 import { useEffect, useState } from "react";
 const useEngine = (engineName) => {

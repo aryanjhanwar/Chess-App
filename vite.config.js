@@ -9,7 +9,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@analysis': fileURLToPath(new URL('./src/analysis/chessapp', import.meta.url)),
+      '@engine': fileURLToPath(new URL('./src/lib/engine', import.meta.url)),
     },
   },
   server: {

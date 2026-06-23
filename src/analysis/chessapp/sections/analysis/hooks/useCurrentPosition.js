@@ -9,9 +9,9 @@ import {
 } from "@analysis/sections/analysis/states";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect } from "react";
-import { getEvaluateGameParams } from "@analysis/lib/chess";
-import { getMovesClassification } from "@analysis/lib/engine/helpers/moveClassification";
-import { openings } from "@analysis/data/openings";
+import { getEvaluateGameParams } from "@/shared/chess/analysis/chess";
+import { getMovesClassification } from "@/shared/chess/analysis/moveClassification";
+import { openings } from "@/shared/chess/openings/openings";
 const useCurrentPosition = (engine) => {
   const [currentPosition, setCurrentPosition] = useAtom(currentPositionAtom);
   const gameEval = useAtomValue(gameEvalAtom);

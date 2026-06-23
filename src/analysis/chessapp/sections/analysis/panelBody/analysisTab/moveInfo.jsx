@@ -3,7 +3,7 @@ import { Skeleton, Stack, Typography } from "@mui/material";
 import { useAtomValue } from "jotai";
 import { boardAtom, currentPositionAtom } from "../../states";
 import { useMemo } from "react";
-import { moveLineUciToSan } from "@analysis/lib/chess";
+import { moveLineUciToSan } from "@/shared/chess/analysis/chess";
 import { MoveClassification } from "@analysis/types/enums";
 import Image from "@analysis/shims/image";
 import PrettyMoveSan from "@analysis/components/prettyMoveSan";

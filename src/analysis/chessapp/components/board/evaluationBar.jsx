@@ -2,7 +2,7 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import { Box, Grid, Typography } from "@mui/material";
 import { atom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
-import { getEvaluationBarValue } from "@analysis/lib/chess";
+import { getEvaluationBarValue } from "@/shared/chess/analysis/chess";
 import { Color } from "@analysis/types/enums";
 function EvaluationBar({
   height,

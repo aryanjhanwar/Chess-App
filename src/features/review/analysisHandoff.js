@@ -1,4 +1,4 @@
-import { generatePGN, getPGNResult, formatPGNTimeControl } from '../../engine/pgn.js';
+import { generatePGN, getPGNResult, formatPGNTimeControl } from '@/shared/chess/engine/pgn.js';
 
 export function openGameAnalysis({
   currentPGN,

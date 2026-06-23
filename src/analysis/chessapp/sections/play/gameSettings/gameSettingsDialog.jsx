@@ -31,10 +31,10 @@ import {
 import { useChessActions } from "@analysis/hooks/useChessActions";
 import { logAnalyticsEvent } from "@analysis/lib/firebase";
 import { useEffect, useState } from "react";
-import { isEngineSupported } from "@analysis/lib/engine/shared";
-import { Stockfish16_1 } from "@analysis/lib/engine/stockfish16_1";
+import { isEngineSupported } from "@/shared/chess/stockfish/shared";
+import { Stockfish16_1 } from "@/shared/chess/stockfish/stockfish16_1";
 import { DEFAULT_ENGINE, ENGINE_LABELS, STRONGEST_ENGINE } from "@analysis/constants";
-import { getGameFromPgn } from "@analysis/lib/chess";
+import { getGameFromPgn } from "@/shared/chess/analysis/chess";
 function GameSettingsDialog({ open, onClose }) {
   const [engineElo, setEngineElo] = useAtomLocalStorage(
     "engine-elo",

@@ -1,5 +1,5 @@
 import { jsx } from "react/jsx-runtime";
-import { getLineEvalLabel } from "@analysis/lib/chess";
+import { getLineEvalLabel } from "@/shared/chess/analysis/chess";
 function CustomTooltip({
   active,
   payload

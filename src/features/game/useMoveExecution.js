@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { generatePGN, getPGNResult, formatPGNTimeControl } from '../../engine/pgn.js';
+import { generatePGN, getPGNResult, formatPGNTimeControl } from '@/shared/chess/engine/pgn.js';
 import { playMoveSound, playCaptureSound, playCheckSound, playCastleSound, playGameEndSound } from '../../utils/sounds';
 
 export function useMoveExecution({

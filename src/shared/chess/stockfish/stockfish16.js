@@ -1,6 +1,13 @@
 import { isMultiThreadSupported, isWasmSupported } from './shared.js';
+import { UciEngine } from './uciEngine.js';
 
 export class Stockfish16 {
+  static async create(useNnue = false) {
+    const engine = new UciEngine({ engineProfile: useNnue ? 'stockfish-16-nnue' : 'stockfish-16' });
+    await engine.init();
+    return engine;
+  }
+
   static getPath() {
     const multiThread = isMultiThreadSupported();
     return multiThread
