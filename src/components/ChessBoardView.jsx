@@ -2,6 +2,7 @@ import { useEffect, useMemo, memo } from 'react';
 import { pieceImages as defaultPieceImages } from '../constants/theme';
 import { useDragAndDrop } from '../hooks/useDragAndDrop';
 import { toPublicPath } from '../utils/assetPath';
+import PawnPromotionUI from './PawnPromotionUI';
 
 function getPngFallbackFromSvg(path) {
   if (typeof path !== 'string') return '';
@@ -165,6 +166,10 @@ export default function ChessBoardView({
   dragAnimation = true,
   compactMode = false,
   showAnalysisMoveIcon = true,
+  showPromotionUI,
+  promotionSquare,
+  onPromotion,
+  onCancel,
 }) {
   const {
     dragState,
@@ -321,6 +326,15 @@ export default function ChessBoardView({
             }}
           />
         </div>
+      )}
+
+      {showPromotionUI && (
+        <PawnPromotionUI
+          promotionSquare={promotionSquare}
+          onPromotion={onPromotion}
+          onCancel={onCancel}
+          activePieceImages={activePieceImages}
+        />
       )}
     </div>
   );

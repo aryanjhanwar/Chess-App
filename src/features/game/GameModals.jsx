@@ -1,15 +1,9 @@
-import PawnPromotionUI from '../../components/PawnPromotionUI';
 import GameOverModal from '../../components/GameOverModal';
 import DrawOfferModal from '../../components/DrawOfferModal';
 import SettingsModal from '../../components/SettingsModal';
 import GameSettingsModal from '../../components/GameSettingsModal';
 
 export default function GameModals({
-  showPromotionUI,
-  promotionSquare,
-  handlePromotion,
-  handleCancelPromotion,
-
   isGameOverUIState,
   gameState,
   currentTurn,
@@ -50,14 +44,6 @@ export default function GameModals({
 }) {
   return (
     <>
-      {showPromotionUI && (
-        <PawnPromotionUI
-          promotionSquare={promotionSquare}
-          onPromotion={handlePromotion}
-          onCancel={handleCancelPromotion}
-        />
-      )}
-
       {isGameOverUIState && (
         <GameOverModal
           gameState={gameState}

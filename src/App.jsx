@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { generatePGN, getPGNResult, formatPGNTimeControl } from './engine/pgn.js'
+import { generatePGN, getPGNResult, formatPGNTimeControl } from '@/shared/chess/engine/pgn.js'
 import { useChessTimer } from './hooks/useChessTimer'
 import { useGameEngine, isPromotionTag, getPromotionPieceType } from './hooks/useGameEngine'
 import { usePawnPromotion } from './hooks/usePawnPromotion'
@@ -17,7 +17,7 @@ import SettingsModal from './components/SettingsModal'
 import GameSettingsModal from './components/GameSettingsModal'
 import ModeSelectScreen from './components/ModeSelectScreen'
 import MultiplayerLobbyScreen from './components/MultiplayerLobbyScreen'
-import { initBitboardEngine } from './engine/index.js'
+import { initBitboardEngine } from '@/shared/chess/engine/index.js'
 import { useStockfish } from './hooks/useStockfish'
 import { useP2PGame } from './hooks/useP2PGame'
 import BoardContainer from './features/board/BoardContainer';
@@ -538,8 +538,8 @@ function App() {
 
           initiatePromotion(
             promoMoves,
-            rowIndex,
-            colIndex,
+            displayRow,
+            displayCol,
             pawnColor
           );
 
@@ -1184,6 +1184,10 @@ function App() {
           activePieceImages={activePieceImages || {}}
           boardThemeColors={boardThemeColors}
           uiSettings={uiSettings}
+          showPromotionUI={showPromotionUI}
+          promotionSquare={promotionSquare}
+          onPromotion={handlePromotion}
+          onCancel={handleCancelPromotion}
         />
       </div>
 
@@ -1197,11 +1201,6 @@ function App() {
         from App's JSX — they are rendered inside GameModals instead.
       */}
       <GameModals
-        showPromotionUI={showPromotionUI}
-        promotionSquare={promotionSquare}
-        handlePromotion={handlePromotion}
-        handleCancelPromotion={handleCancelPromotion}
-
         isGameOverUIState={isGameOverUIState}
         gameState={gameState}
         currentTurn={currentTurn}

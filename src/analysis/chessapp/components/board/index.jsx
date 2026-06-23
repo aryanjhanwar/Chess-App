@@ -4,6 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { atom, useAtomValue, useSetAtom } from "jotai";
 import { useChessActions } from "@analysis/hooks/useChessActions";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import PawnPromotionUI from "@/components/PawnPromotionUI";
 import { Color, MoveClassification } from "@analysis/types/enums";
 import { getSquareRenderer } from "./squareRenderer";
 import EvaluationBar from "./evaluationBar";
@@ -43,6 +44,33 @@ function Board({
   const pieceSet = useAtomValue(pieceSetAtom);
   const boardHue = useAtomValue(boardHueAtom);
   const gameFen = game.fen();
+
+  const getVisualCoords = useCallback((square) => {
+    if (!square) return null;
+    const col = square.charCodeAt(0) - 97;
+    const row = 8 - parseInt(square[1], 10);
+    const isFlipped = boardOrientation === Color.Black;
+    return {
+      row: isFlipped ? 7 - row : row,
+      col: isFlipped ? 7 - col : col
+    };
+  }, [boardOrientation]);
+
+  const promotionPieceImages = useMemo(() => {
+    const codes = ['wQ', 'wR', 'wB', 'wN', 'bQ', 'bR', 'bB', 'bN'];
+    return codes.reduce((acc, code) => {
+      acc[code] = `/piece/${pieceSet}/${code}.svg`;
+      return acc;
+    }, {});
+  }, [pieceSet]);
+
+  const visualPromotionSquare = useMemo(() => {
+    if (!showPromotionDialog || !moveClickTo) return null;
+    const coords = getVisualCoords(moveClickTo);
+    if (!coords) return null;
+    const color = moveClickTo[1] === "8" ? "w" : "b";
+    return { ...coords, color };
+  }, [showPromotionDialog, moveClickTo, getVisualCoords]);
   useEffect(() => {
     setClickedSquares([]);
   }, [gameFen, setClickedSquares]);
@@ -57,6 +85,22 @@ function Board({
   const onPieceDrop = useCallback(
     (source, target, piece) => {
       if (!isPiecePlayable({ piece })) return false;
+
+      // Check for pawn promotion move during drag-and-drop
+      const isPawn = piece[1]?.toLowerCase() === "p";
+      const isPromotionRank = (piece[0] === "w" && target[1] === "8") || (piece[0] === "b" && target[1] === "1");
+
+      if (isPawn && isPromotionRank) {
+        const moves = game.moves({ square: source, verbose: true });
+        const hasValidPromo = moves.some(m => m.to === target && m.flags.includes("p"));
+        if (hasValidPromo) {
+          setMoveClickFrom(source);
+          setMoveClickTo(target);
+          setShowPromotionDialog(true);
+          return false; // Return false to prevent react-chessboard from completing immediately
+        }
+      }
+
       const result = playMove({
         from: source,
         to: target,
@@ -64,7 +108,7 @@ function Board({
       });
       return !!result;
     },
-    [isPiecePlayable, playMove]
+    [isPiecePlayable, playMove, game, setMoveClickFrom, setMoveClickTo, setShowPromotionDialog]
   );
   const resetMoveClick = useCallback(
     (square) => {
@@ -259,28 +303,39 @@ function Board({
                   alignItems: "center",
                   ref: setBoardContainerRef,
                   size: 12,
-                  children: /* @__PURE__ */ jsx(
-                    Chessboard,
-                    {
-                      id: `${boardId}-${canPlay}`,
-                      position: gameFen,
-                      onPieceDrop,
-                      boardOrientation: boardOrientation === Color.White ? "white" : "black",
-                      customBoardStyle,
-                      customArrows,
-                      isDraggablePiece: isPiecePlayable,
-                      customSquare: SquareRenderer,
-                      onSquareClick: handleSquareLeftClick,
-                      onSquareRightClick: handleSquareRightClick,
-                      onPieceDragBegin: handlePieceDragBegin,
-                      onPieceDragEnd: handlePieceDragEnd,
-                      onPromotionPieceSelect,
-                      showPromotionDialog,
-                      promotionToSquare: moveClickTo,
-                      animationDuration: 200,
-                      customPieces
-                    }
-                  )
+                  sx: { position: "relative" },
+                  children: [
+                    /* @__PURE__ */ jsx(
+                      Chessboard,
+                      {
+                        id: `${boardId}-${canPlay}`,
+                        position: gameFen,
+                        onPieceDrop,
+                        boardOrientation: boardOrientation === Color.White ? "white" : "black",
+                        customBoardStyle,
+                        customArrows,
+                        isDraggablePiece: isPiecePlayable,
+                        customSquare: SquareRenderer,
+                        onSquareClick: handleSquareLeftClick,
+                        onSquareRightClick: handleSquareRightClick,
+                        onPieceDragBegin: handlePieceDragBegin,
+                        onPieceDragEnd: handlePieceDragEnd,
+                        onPromotionPieceSelect,
+                        showPromotionDialog: false,
+                        animationDuration: 200,
+                        customPieces
+                      }
+                    ),
+                    visualPromotionSquare && /* @__PURE__ */ jsx(
+                      PawnPromotionUI,
+                      {
+                        promotionSquare: visualPromotionSquare,
+                        onPromotion: (pieceType) => onPromotionPieceSelect(visualPromotionSquare.color + pieceType, moveClickFrom, moveClickTo),
+                        onCancel: () => resetMoveClick(moveClickFrom),
+                        activePieceImages: promotionPieceImages
+                      }
+                    )
+                  ]
                 }
               ),
               /* @__PURE__ */ jsx(

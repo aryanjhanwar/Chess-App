@@ -40,6 +40,10 @@ export default function BoardContainer({
   boardThemeColors,
 
   uiSettings,
+  showPromotionUI,
+  promotionSquare,
+  onPromotion,
+  onCancel,
 }) {
   return (
     <div className="flex flex-col items-center w-full max-w-[600px]">
@@ -128,6 +132,10 @@ export default function BoardContainer({
           showAnalysisMoveIcon={false}
           analysisMoveClassification={null}
           analysisMoveTo={null}
+          showPromotionUI={showPromotionUI}
+          promotionSquare={promotionSquare}
+          onPromotion={onPromotion}
+          onCancel={onCancel}
         />
       </div>
 

@@ -87,6 +87,9 @@ function BitboardAnalysisBoard() {
   const [validMoves, setValidMoves] = useState([]);
   const [boardHeight, setBoardHeight] = useState(560);
   const [boardWidth, setBoardWidth] = useState(560);
+  const [showPromotionUI, setShowPromotionUI] = useState(false);
+  const [promotionSquare, setPromotionSquare] = useState(null);
+  const [pendingPromotionMove, setPendingPromotionMove] = useState(null);
   const boardContainerRef = useRef(null);
 
   useEffect(() => {
@@ -134,10 +137,21 @@ function BitboardAnalysisBoard() {
         const move = candidateMoves.find((m) => m.to === clickedSquare);
 
         if (move) {
+          const isPromotion = move.flags.includes('p');
+          if (isPromotion) {
+            setPendingPromotionMove({ from: move.from, to: move.to });
+            setPromotionSquare({
+              row: displayRow,
+              col: displayCol,
+              color: sideToMove,
+            });
+            setShowPromotionUI(true);
+            return;
+          }
+
           playBoardMove({
             from: move.from,
             to: move.to,
-            promotion: move.promotion,
           });
           setSelectedSquare(null);
           setValidMoves([]);
@@ -171,6 +185,32 @@ function BitboardAnalysisBoard() {
       sideToMove,
     ]
   );
+
+  const handlePromotion = useCallback(
+    (pieceType) => {
+      if (pendingPromotionMove) {
+        playBoardMove({
+          from: pendingPromotionMove.from,
+          to: pendingPromotionMove.to,
+          promotion: pieceType.toLowerCase(),
+        });
+      }
+      setShowPromotionUI(false);
+      setPromotionSquare(null);
+      setPendingPromotionMove(null);
+      setSelectedSquare(null);
+      setValidMoves([]);
+    },
+    [pendingPromotionMove, playBoardMove]
+  );
+
+  const handleCancelPromotion = useCallback(() => {
+    setShowPromotionUI(false);
+    setPromotionSquare(null);
+    setPendingPromotionMove(null);
+    setSelectedSquare(null);
+    setValidMoves([]);
+  }, []);
 
   const boardForRender = useMemo(
     () => (isWhiteBottom ? engineBoard : flipBoard(engineBoard)),
@@ -297,6 +337,10 @@ function BitboardAnalysisBoard() {
             dragAnimation={true}
             activePieceImages={activePieceImages}
             boardTheme={boardTheme}
+            showPromotionUI={showPromotionUI}
+            promotionSquare={promotionSquare}
+            onPromotion={handlePromotion}
+            onCancel={handleCancelPromotion}
           />
 
           {arrowCoordinates && (
