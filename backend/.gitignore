@@ -1,0 +1,12 @@
+# ─── Node ───────────────────────────────────────────────
+node_modules/
+dist/
+npm-debug.log*
+
+# ─── Environment ────────────────────────────────────────
+.env
+# NOTE: .env.example IS committed — it shows required keys with no real values
+
+# ─── OS ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
