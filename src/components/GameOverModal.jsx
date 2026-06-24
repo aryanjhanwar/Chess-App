@@ -1,4 +1,4 @@
-import { theme } from '../constants/theme';
+import React from 'react';
 
 export default function GameOverModal({ 
   gameState, 
@@ -12,39 +12,44 @@ export default function GameOverModal({
     switch (gameState) {
       case 'checkmate':
         return {
-          emoji: '🏆',
-          title: currentTurn === 'w' ? 'You Lost!' : 'You Won!',
-          subtitle: 'by checkmate'
-        };
-      case 'stalemate':
-        return {
-          emoji: '🤝',
-          title: 'Draw!',
-          subtitle: 'by stalemate'
+          type: currentTurn === 'w' ? 'defeat' : 'victory',
+          title: currentTurn === 'w' ? 'Defeat' : 'Victory',
+          subtitle: 'by Checkmate',
+          color: currentTurn === 'w' ? 'from-red-500 to-rose-700' : 'from-emerald-400 to-green-600',
+          emoji: currentTurn === 'w' ? '💀' : '🏆'
         };
       case 'timeout':
         return {
-          emoji: '⏰',
-          title: currentTurn === 'w' ? 'Black Wins!' : 'White Wins!',
-          subtitle: 'on time'
+          type: currentTurn === 'w' ? 'defeat' : 'victory',
+          title: currentTurn === 'w' ? 'Time Up' : 'Victory',
+          subtitle: 'on Time',
+          color: currentTurn === 'w' ? 'from-red-500 to-rose-700' : 'from-emerald-400 to-green-600',
+          emoji: '⏰'
         };
       case 'resigned':
         return {
-          emoji: '🏳️',
-          title: currentTurn === 'w' ? 'Black Wins!' : 'White Wins!',
-          subtitle: 'by resignation'
+          type: currentTurn === 'w' ? 'defeat' : 'victory',
+          title: currentTurn === 'w' ? 'Resigned' : 'Victory',
+          subtitle: 'by Resignation',
+          color: currentTurn === 'w' ? 'from-red-500 to-rose-700' : 'from-emerald-400 to-green-600',
+          emoji: '🏳️'
         };
+      case 'stalemate':
       case 'draw':
         return {
-          emoji: '🤝',
-          title: 'Draw!',
-          subtitle: 'by agreement'
+          type: 'draw',
+          title: 'Draw',
+          subtitle: gameState === 'stalemate' ? 'by Stalemate' : 'by Agreement',
+          color: 'from-slate-400 to-gray-600',
+          emoji: '🤝'
         };
       case 'abandoned':
         return {
-          emoji: '📡',
-          title: 'Game Abandoned',
-          subtitle: 'connection lost'
+          type: 'draw',
+          title: 'Abandoned',
+          subtitle: 'Connection Lost',
+          color: 'from-slate-400 to-gray-600',
+          emoji: '📡'
         };
       default:
         return null;
@@ -55,50 +60,59 @@ export default function GameOverModal({
   if (!content) return null;
 
   return (
-    <div className="fixed lg:absolute inset-0 flex items-center justify-center pointer-events-none px-2 sm:px-4 z-50">
-      <div className={`${theme.sidebarCard} rounded-2xl p-4 sm:p-8 shadow-2xl w-[min(92vw,360px)] sm:w-full sm:max-w-96 pointer-events-auto relative`}>
-        {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Soft overlay instead of total blackout */}
+      <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in`} />
+      
+      {/* Small, elegant Modal Card */}
+      <div className="relative w-full max-w-sm bg-[#1e2532] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-rise-in transform transition-all">
+        
+        {/* Subtle top border gradient */}
+        <div className={`h-1.5 w-full bg-gradient-to-r ${content.color}`} />
+
         <button
           onClick={onClose}
-          className={`absolute top-2 right-2 sm:top-4 sm:right-4 ${theme.textSecondary} hover:text-gray-300 transition-colors`}
+          className="absolute top-3 right-3 text-white/50 hover:text-white transition-colors"
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Content */}
-        <div className="flex flex-col items-center">
-          <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">{content.emoji}</div>
-          <h2 className={`text-2xl sm:text-4xl font-bold ${theme.textPrimary} mb-2 text-center`}>
+        <div className="p-6 text-center">
+          <div className="text-5xl mb-3 animate-bounce-slow">
+            {content.emoji}
+          </div>
+          
+          <h2 className={`text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br ${content.color} mb-1 tracking-wide`}>
             {content.title}
           </h2>
-          <p className={`${theme.textSecondary} text-sm sm:text-base mb-4 sm:mb-6`}>
+          
+          <p className="text-sm font-bold text-white/50 uppercase tracking-widest mb-6">
             {content.subtitle}
           </p>
 
-          {/* Buttons */}
-          <div className="flex flex-col gap-3 w-full mt-2">
-            <button
-              onClick={onReview}
-              className={`w-full ${theme.secondaryButton} text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base`}
-            >
-              Review
-            </button>
+          <div className="flex flex-col gap-3">
             <div className="flex gap-3">
               <button
                 onClick={onNewGame}
-                className={`flex-1 ${theme.secondaryButton} text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base`}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2.5 rounded-lg font-bold hover:from-blue-400 hover:to-blue-500 transition-all shadow-[0_3px_0_rgba(0,0,0,0.3)] hover:translate-y-[-1px] active:translate-y-[2px] active:shadow-none"
               >
                 New Game
               </button>
               <button
                 onClick={onRematch || onNewGame}
-                className={`flex-1 ${theme.secondaryButton} text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base`}
+                className="flex-1 bg-[#252d3d] border border-white/10 text-white py-2.5 rounded-lg font-bold hover:bg-[#2c3547] transition-all shadow-[0_3px_0_rgba(0,0,0,0.3)] hover:translate-y-[-1px] active:translate-y-[2px] active:shadow-none"
               >
                 Rematch
               </button>
             </div>
+            <button
+              onClick={onReview}
+              className="w-full bg-transparent border border-white/5 text-white/70 py-2 rounded-lg font-semibold hover:bg-white/5 hover:text-white transition-all"
+            >
+              Review Board
+            </button>
           </div>
         </div>
       </div>

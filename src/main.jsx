@@ -48,7 +48,7 @@ createRoot(document.getElementById('root')).render(
         <BrowserRouter basename={basename}>
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
-              <Route path="/" element={<App />} />
+              <Route path="/*" element={<App />} />
               <Route path="/analysis" element={<AnalysisApp />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

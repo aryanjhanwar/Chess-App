@@ -125,18 +125,30 @@ function ArrowLayer({ arrows, boardSize, isFlipped }) {
         const y2s = y2 - (dy / len) * sqSize * 0.32;
 
         return (
-          <line
-            key={`arrow-${i}`}
-            x1={x1}
-            y1={y1}
-            x2={x2s}
-            y2={y2s}
-            stroke={arrow.color || 'rgba(0,150,255,0.75)'}
-            strokeWidth={r * 1.7}
-            strokeLinecap="round"
-            markerEnd={`url(#arrowhead-${i})`}
-            opacity="0.82"
-          />
+          <g key={`arrow-group-${i}`}>
+            <line
+              x1={x1}
+              y1={y1}
+              x2={x2s}
+              y2={y2s}
+              stroke="white"
+              strokeWidth={r * 2.2}
+              strokeLinecap="round"
+              opacity="0.9"
+            />
+            <line
+              key={`arrow-${i}`}
+              x1={x1}
+              y1={y1}
+              x2={x2s}
+              y2={y2s}
+              stroke={arrow.color || 'rgba(0,150,255,0.9)'}
+              strokeWidth={r * 1.7}
+              strokeLinecap="round"
+              markerEnd={`url(#arrowhead-${i})`}
+              opacity="0.95"
+            />
+          </g>
         );
       })}
     </svg>
@@ -259,7 +271,8 @@ const Square = memo(({
   activePieceImages,
   onSquareClick,
   onMouseDown,
-  onMouseUp
+  onMouseUp,
+  isDarkSquare
 }) => {
   return (
     <div
@@ -277,7 +290,7 @@ const Square = memo(({
         <img
           src={toPublicPath(`icons/${moveClassification}.png`)}
           alt="move-classification"
-          className="absolute -top-1 -right-1 w-5 h-5 sm:w-[1.375rem] sm:h-[1.375rem] pointer-events-none z-[11] drop-shadow-md"
+          className="absolute -top-1.5 -right-1.5 w-6 h-6 sm:w-[1.6rem] sm:h-[1.6rem] pointer-events-none z-[11] drop-shadow-md bg-white rounded-full p-[2px]"
           draggable="false"
         />
       )}
@@ -288,17 +301,17 @@ const Square = memo(({
         <div className="absolute inset-0 rounded-full border-[6px] border-red-500 pointer-events-none opacity-80 z-20"></div>
       )}
       {showCoordinates && colIndex === 0 && (
-        <span className="absolute left-1.5 top-1 text-[10px] font-semibold text-black/45 pointer-events-none z-20">
+        <span className={`absolute left-1 top-0.5 text-[11px] font-bold ${isDarkSquare ? 'text-white/80' : 'text-black/70'} pointer-events-none z-20`}>
           {rankLabel}
         </span>
       )}
       {showCoordinates && rowIndex === 7 && (
-        <span className="absolute right-1.5 bottom-1 text-[10px] font-semibold text-black/45 pointer-events-none uppercase z-20">
+        <span className={`absolute right-1 bottom-0 text-[11px] font-bold ${isDarkSquare ? 'text-white/80' : 'text-black/70'} pointer-events-none z-20`}>
           {fileLabel}
         </span>
       )}
       {isSelected && (
-        <div className="absolute inset-0 ring-4 ring-yellow-400 ring-inset pointer-events-none z-20"></div>
+        <div className="absolute inset-0 bg-white/25 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.6)] pointer-events-none z-20"></div>
       )}
     </div>
   );
@@ -361,12 +374,16 @@ export default function ChessBoardView({
   const lastBoardUpdateRef = useRef(Date.now());
   const isScrubbingRef = useRef(false);
   const scrubTimeoutRef = useRef(null);
+  const prevBoardPropRef = useRef(board);
 
-  const now = Date.now();
-  if (now - lastBoardUpdateRef.current < 180) {
-    isScrubbingRef.current = true;
+  if (board !== prevBoardPropRef.current) {
+    const now = Date.now();
+    if (now - lastBoardUpdateRef.current < 180) {
+      isScrubbingRef.current = true;
+    }
+    lastBoardUpdateRef.current = now;
+    prevBoardPropRef.current = board;
   }
-  lastBoardUpdateRef.current = now;
 
   useEffect(() => {
     if (isScrubbingRef.current) {
@@ -509,6 +526,7 @@ export default function ChessBoardView({
                 onSquareClick={onSquareClick}
                 onMouseDown={enableDrag ? handleMouseDown : NOOP}
                 onMouseUp={enableDrag ? handleMouseUp : NOOP}
+                isDarkSquare={isDark}
               />
             );
           })
@@ -570,9 +588,9 @@ export default function ChessBoardView({
            <img
             src={activePieceImages[dragState.piece] || defaultPieceImages[dragState.piece]}
             alt=""
-            className="w-14 h-14 object-contain select-none"
+            className="w-[115%] h-[115%] object-contain select-none drop-shadow-2xl"
             draggable="false"
-            style={{ margin: '8px', pointerEvents: 'none', transition: dragAnimation ? 'transform 0.08s linear' : 'none' }}
+            style={{ margin: '-5%', pointerEvents: 'none', transition: dragAnimation ? 'transform 0.08s linear' : 'none' }}
             onError={(event) => {
               const element = event.currentTarget;
               const currentTry = Number(element.dataset.fallbackTry || 0);

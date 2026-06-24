@@ -1,6 +1,6 @@
 // Theme constants for easy customization
 import { toAssetPath } from '../utils/assetPath.js';
-import assetManifest from '../../public/assets/asset-manifest.json';
+
 
 export const theme = {
   // Main colors
@@ -74,7 +74,7 @@ const findBestPieceFile = (files = [], normalizedCode) => {
 
 export const buildPieceImages = (pieceSetName = PIECE_STYLE_TO_SET.classic, pieceFiles = null) => {
   const setName = pieceSetName || PIECE_STYLE_TO_SET.classic;
-  const files = pieceFiles || assetManifest.pieceFilesBySet[setName] || [];
+  const files = pieceFiles || [];
   const keys = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bp', 'wR', 'wN', 'wB', 'wQ', 'wK', 'wp'];
   return keys.reduce((acc, key) => {
     const normalizedCode = normalizePieceCode(key);

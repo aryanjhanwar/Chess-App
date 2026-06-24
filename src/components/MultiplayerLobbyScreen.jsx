@@ -89,7 +89,7 @@ export default function MultiplayerLobbyScreen({
   };
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-[#0bb0e5] via-[#0483ad] to-[#0bb0e5] flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-2xl rounded-3xl border border-white/25 bg-white/10 backdrop-blur-md shadow-2xl p-5 sm:p-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white text-2xl sm:text-3xl font-black">Multiplayer Lobby</h2>

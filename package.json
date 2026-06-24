@@ -18,6 +18,8 @@
   "scripts": {
     "assets:manifest": "node scripts/generate-asset-manifest.mjs",
     "dev": "npm run assets:manifest && vite",
+    "dev:server": "npm run start --prefix server",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "npm run assets:manifest && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -46,6 +48,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^10.0.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

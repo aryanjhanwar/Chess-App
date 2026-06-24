@@ -48,7 +48,7 @@ export default function RightPanel({
   const [activeTopOption, setActiveTopOption] = useState(gameStarted ? 'moves' : 'setup');
   const startTimeoutRef = useRef(null);
 
-  const effectiveTopOption = gameStarted ? 'moves' : activeTopOption;
+  const effectiveTopOption = gameStarted ? activeTopOption === 'setup' ? 'moves' : activeTopOption : (isReviewMode ? 'moves' : 'setup');
 
   const handleTopOptionChange = (nextOption) => {
     setActiveTopOption(nextOption);
@@ -58,9 +58,9 @@ export default function RightPanel({
   };
 
   const topOptionItems = [
-    { key: 'setup', label: 'Setup', enabled: !gameStarted },
-    { key: 'moves', label: 'Moves', enabled: true },
-    { key: 'chat', label: 'Chat', enabled: false },
+    { key: 'setup', label: 'Setup', enabled: !gameStarted && !isReviewMode },
+    { key: 'moves', label: 'Moves', enabled: gameStarted || isReviewMode },
+    { key: 'chat', label: 'Chat', enabled: gameStarted && isMultiplayerGame },
   ];
 
   const handleTimeSelect = (control) => {
@@ -176,88 +176,71 @@ export default function RightPanel({
           ) : (
             <>
               {gameStarted && (
-                <div
-                  className="rounded-xl p-3 text-sm text-white/90"
-                  style={{ background: 'rgba(255,255,255,0.10)' }}
-                >
+                <div className="rounded-xl p-4 text-sm text-white/90 bg-[#1e2532] border border-white/10 mb-4 shadow-lg">
                   Setup is locked during an active game. Click New Game in Moves tab to return to setup.
                 </div>
               )}
 
               {/* Selected Time Control */}
-              <div 
+              <button 
                 onClick={() => setShowTimeOptions(!showTimeOptions)}
-                className="flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all relative"
-                style={{background: SURFACE_BG}}
-                {...createHoverBackgroundHandlers(SURFACE_BG, SURFACE_BG_HOVER)}
+                className="w-full flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all relative bg-black/20 backdrop-blur-md border border-white/10 text-white font-bold hover:bg-white/10"
               >
-                <span className="font-bold text-white">
+                <span>
                   {selectedTimeControl.icon || '🚀'} {selectedTimeControl.label} ({selectedTimeControl.category ? selectedTimeControl.category.charAt(0).toUpperCase() + selectedTimeControl.category.slice(1) : 'Bullet'})
                 </span>
                 <span className="text-xl absolute right-4">{showTimeOptions ? '⌃' : '⌄'}</span>
-              </div>
+              </button>
 
               {/* Time Categories */}
               {showTimeOptions ? (
-                <div className="space-y-3">
+                <div className="space-y-3 bg-black/20 backdrop-blur-md p-4 rounded-xl border border-white/10 mt-2">
                   <TimeControlSections
                     selectedTimeControl={selectedTimeControl}
                     onSelectTimeControl={handleTimeSelect}
-                    sectionClassName="font-bold text-sm mb-2"
-                    buttonClassName="py-2.5 rounded-lg font-semibold transition-all"
+                    sectionClassName="font-bold text-sm text-white/60 uppercase tracking-wider mb-3"
+                    buttonClassName="py-2.5 rounded-lg font-semibold transition-all w-full text-white"
                     getButtonStyle={(control) => ({
-                      background: selectedTimeControl.label === control.label
-                        ? 'rgba(127,191,63,0.35)'
-                        : 'rgba(255,255,255,0.12)',
-                      border: selectedTimeControl.label === control.label
-                        ? '2px solid #7fbf3f'
-                        : '2px solid transparent'
+                      background: selectedTimeControl.label === control.label ? '#3b82f6' : 'rgba(255,255,255,0.05)'
                     })}
                   />
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4 mt-4">
                   {/* Game Mode Selector */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => onSelectGameMode({ mode: 'human' })}
-                      className="py-2.5 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
-                      style={{
-                        background: gameMode === 'human' ? 'rgba(127,191,63,0.5)' : 'rgba(255,255,255,0.12)',
-                        border: gameMode === 'human' ? '2px solid #7fbf3f' : '2px solid transparent'
-                      }}
-                    >
-                      <span className="text-base">👥</span>
-                      <span>vs Human</span>
-                    </button>
-                    <button
-                      onClick={() => onSelectGameMode({ mode: 'computer' })}
-                      className="py-2.5 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
-                      style={{
-                        background: gameMode === 'computer' ? 'rgba(127,191,63,0.5)' : 'rgba(255,255,255,0.12)',
-                        border: gameMode === 'computer' ? '2px solid #7fbf3f' : '2px solid transparent'
-                      }}
-                    >
-                      <span className="text-base">🤖</span>
-                      <span>vs Computer</span>
-                    </button>
+                  <div className="bg-black/20 backdrop-blur-md p-4 rounded-xl border border-white/10">
+                    <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider mb-3">Opponent</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => onSelectGameMode({ mode: 'human' })}
+                        className={`py-3 rounded-lg font-bold text-white transition-all flex flex-col items-center justify-center gap-1 border-2 ${gameMode === 'human' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-white/5 border-transparent'}`}
+                      >
+                        <span className="text-2xl">👥</span>
+                        <span className="text-sm">Human</span>
+                      </button>
+                      <button
+                        onClick={() => onSelectGameMode({ mode: 'computer' })}
+                        className={`py-3 rounded-lg font-bold text-white transition-all flex flex-col items-center justify-center gap-1 border-2 ${gameMode === 'computer' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-white/5 border-transparent'}`}
+                      >
+                        <span className="text-2xl">🤖</span>
+                        <span className="text-sm">Computer</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Computer Settings - Only show if vs Computer mode */}
                   {gameMode === 'computer' && (
-                    <>
+                    <div className="bg-black/20 backdrop-blur-md p-4 rounded-xl border border-white/10">
                       {/* Computer Difficulty */}
-                      <div 
+                      <button 
                         onClick={() => setShowComputerSettings(!showComputerSettings)}
-                        className="relative flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all"
-                        style={{background: SURFACE_BG}}
-                        {...createHoverBackgroundHandlers(SURFACE_BG, SURFACE_BG_HOVER)}
+                        className="w-full flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all relative bg-white/5 border border-white/5 text-white font-bold hover:bg-white/10"
                       >
-                        <span className="font-bold text-white text-center">
+                        <span>
                           🤖 {getDifficultyLabel(computerDifficulty)} (Level {computerDifficulty})
                         </span>
                         <span className="text-xl absolute right-4">{showComputerSettings ? '⌃' : '⌄'}</span>
-                      </div>
+                      </button>
 
                       {showComputerSettings && (
                         <div className="space-y-3 p-4 rounded-xl" style={{background: 'rgba(255,255,255,0.08)'}}>
@@ -320,7 +303,7 @@ export default function RightPanel({
                           </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
 
                   <PrimaryActionButton

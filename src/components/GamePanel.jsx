@@ -149,22 +149,17 @@ export default function GamePanel({
             onResign();
           }
         }}
-        className={`flex-1 backdrop-blur-sm rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 text-white ${highlightResign || confirmResign ? 'ring-2 ring-yellow-300 animate-pulse shadow-lg shadow-yellow-300/35' : ''}`}
-        style={{background: highlightResign || confirmResign ? 'rgba(220,38,38,0.78)' : 'rgba(220,38,38,0.5)'}}
-        onMouseEnter={(e) => {
-          if (!highlightResign && !confirmResign) e.currentTarget.style.background = 'rgba(220,38,38,0.7)';
-        }}
-        onMouseLeave={(e) => {
-          if (!highlightResign && !confirmResign) e.currentTarget.style.background = 'rgba(220,38,38,0.5)';
+        className={`flex-1 backdrop-blur-sm rounded-lg px-4 py-2.5 font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-white ${confirmResign ? 'bg-red-600/90 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'bg-red-600/40 hover:bg-red-600/60'}`}
+        onMouseLeave={() => {
           if (resignConfirmTimeoutRef.current) {
             clearTimeout(resignConfirmTimeoutRef.current);
             resignConfirmTimeoutRef.current = null;
           }
-          setConfirmResign(false); // Reset if mouse leaves
+          setConfirmResign(false);
         }}
       >
-        <span>{confirmResign ? '⚠️' : '🏳️'}</span>
-        {confirmResign ? 'Confirm Resign?' : 'Resign'}
+        <span className="text-lg">{confirmResign ? '❓' : '🏳️'}</span>
+        {confirmResign ? 'Are you sure?' : 'Resign'}
       </button>
       <button
         onClick={onOfferDraw}
