@@ -1,7 +1,7 @@
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { Fab } from "@mui/material";
 import { useState } from "react";
-import EngineSettingsDialog from "./engineSettingsDialog";
+import EngineSettingsDialog from "./EngineSettingsModal";
 import { Icon } from "@iconify/react";
 function EngineSettingsButton() {
   const [openDialog, setOpenDialog] = useState(false);
