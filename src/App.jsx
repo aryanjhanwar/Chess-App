@@ -320,14 +320,13 @@ function App() {
   const stockfish = useStockfish({ engineProfile });
   const p2p = useP2PGame();
 
-  // ── Persist UI settings ───────────────────────────────────────────
+  // ── Persist UI settings & sync volume ────────────────────────────
+  // Note: atomWithStorage handles localStorage persistence automatically.
+  // This effect only bridges the volume setting to the HTML Audio player.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(
-      STORAGE_KEYS.UI_SETTINGS,
-      JSON.stringify(uiSettings)
-    );
-  }, [uiSettings]);
+    setSoundPreferences({ volume: uiSettings.volume ?? 0.75 });
+  }, [uiSettings.volume]);
+
 
   // ── Chess timer ───────────────────────────────────────────────────
   useChessTimer({
@@ -1204,7 +1203,7 @@ function App() {
         currentTurn={currentTurn}
         handleNewGame={handleNewGame}
         handleRematch={handleRematch}
-        handleGameReview={handleGameReview}
+        handleGameReview={handleOpenGameAnalysis}
         setShowGameOverUI={setShowGameOverUI}
 
         showDrawOffer={showDrawOffer}

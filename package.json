@@ -35,7 +35,6 @@
     "jotai": "^2.18.1",
     "peerjs": "^1.5.5",
     "react": "^19.2.0",
-    "react-chessboard": "^5.10.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.2",
     "recharts": "^3.8.0",

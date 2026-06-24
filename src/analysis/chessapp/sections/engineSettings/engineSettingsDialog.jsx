@@ -38,7 +38,7 @@ import {
   STRONGEST_ENGINE
 } from "@analysis/constants";
 import { getRecommendedWorkersNb } from "@/shared/chess/stockfish/worker";
-import { toPublicPath } from "@analysis/lib/publicPath";
+import { toPublicPath } from "@/utils/assetPath";
 function EngineSettingsDialog({ open, onClose }) {
   const [depth, setDepth] = useAtomLocalStorage(
     "engine-depth",

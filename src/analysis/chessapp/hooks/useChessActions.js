@@ -1,5 +1,5 @@
 import { getGameFromPgn, setGameHeaders } from "@/shared/chess/analysis/chess";
-import { playIllegalMoveSound, playSoundFromMove } from "@analysis/lib/sounds";
+import { playIllegalSound as playIllegalMoveSound, playSoundFromMove } from "@/utils/sounds";
 import { Chess, DEFAULT_POSITION } from "chess.js";
 import { useAtom } from "jotai";
 import { useCallback } from "react";

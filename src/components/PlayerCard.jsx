@@ -1,6 +1,8 @@
 
-import { pieceImages, theme } from '../constants/theme';
-import { groupCapturedPieces, calculateMaterialAdvantage } from '../utils/helpers';
+import { theme } from '../constants/theme';
+import CapturedPiecesList from './CapturedPiecesList';
+import { useAtomValue } from 'jotai';
+import { pieceStyleAtom } from '@/state/themeState';
 
 export default function PlayerCard({
   color, // 'w' or 'b'
@@ -8,12 +10,7 @@ export default function PlayerCard({
   capturedPieces = [],
   opponentCapturedPieces = [],
 }) {
-  // Defensive: always pass arrays
-  const playerArray = Array.isArray(capturedPieces) ? capturedPieces : [];
-  const opponentArray = Array.isArray(opponentCapturedPieces) ? opponentCapturedPieces : [];
-  const materialAdvantage = calculateMaterialAdvantage(playerArray, opponentArray);
-  const groupedCaptured = groupCapturedPieces(playerArray);
-  const groupedEntries = Object.entries(groupedCaptured);
+  const pieceStyle = useAtomValue(pieceStyleAtom);
 
   return (
     <>
@@ -26,29 +23,13 @@ export default function PlayerCard({
           />
         </div>
         <div className={`${theme.textPrimary} font-semibold text-m flex items-center`}>{playerName}</div>
-        <div className="flex items-center gap-1 h-5 overflow-visible">
-          {groupedEntries.map(([type, count]) => (
-            <div key={type} className="relative w-5 h-5">
-              <img
-                src={pieceImages[(color === 'w' ? 'b' : 'w') + type]}
-                alt={type}
-                className="w-5 h-5 object-contain opacity-80"
-                draggable="false"
-              />
-              {count >= 2 && (
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center"
-                  style={{ width: '0.7rem', height: '0.7rem', fontSize: '0.5rem', lineHeight: '0.7rem' }}
-                >
-                  {count}
-                </span>
-              )}
-            </div>
-          ))}
-          {materialAdvantage > 0 && (
-            <span className="text-gray-300 text-xs font-semibold ml-1">+{materialAdvantage}</span>
-          )}
-        </div>
+        <CapturedPiecesList
+          capturedPieces={capturedPieces}
+          opponentCapturedPieces={opponentCapturedPieces}
+          color={color}
+          pieceStyle={pieceStyle}
+          scale={0.55}
+        />
       </div>
     </>
   );

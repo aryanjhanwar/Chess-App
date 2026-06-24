@@ -8,7 +8,7 @@ import Image from "@analysis/shims/image";
 import { MoveClassification } from "@analysis/types/enums";
 import { useChessActions } from "@analysis/hooks/useChessActions";
 import { CLASSIFICATION_COLORS } from "@analysis/constants";
-import { toPublicPath } from "@analysis/lib/publicPath";
+import { toPublicPath } from "@/utils/assetPath";
 function ClassificationRow({ classification }) {
   const gameEval = useAtomValue(gameEvalAtom);
   const board = useAtomValue(boardAtom);

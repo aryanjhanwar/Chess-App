@@ -24,20 +24,16 @@
   flex-direction: column;
 }
 
-.eval-black-fill {
+.eval-top-fill {
   position: relative;
   width: 100%;
-  background: #424242;
   transition: height 1s;
-  border-radius: 5px 5px 0 0;
 }
 
-.eval-white-fill {
+.eval-bottom-fill {
   position: relative;
   width: 100%;
-  background: #ffffff;
   transition: height 1s;
-  border-radius: 0 0 5px 5px;
   display: flex;
   align-items: flex-end;
 }

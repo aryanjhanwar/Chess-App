@@ -6,7 +6,7 @@ import EvaluationBar from '@analysis/components/board/evaluationBar';
 import { Color, MoveClassification } from '@analysis/types/enums';
 import { boardAtom, boardOrientationAtom, currentPositionAtom, gameAtom, gameEvalAtom, showBestMoveArrowAtom, showPlayerMoveIconAtom } from '../states';
 import { boardHueAtom, pieceSetAtom } from '@analysis/components/board/states';
-import { toPublicPath } from '@analysis/lib/publicPath';
+import { toPublicPath } from '@/utils/assetPath';
 import { useChessActions } from '@analysis/hooks/useChessActions';
 
 const PIECE_CODES = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];

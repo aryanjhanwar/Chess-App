@@ -1,18 +1,67 @@
-import { jsx, jsxs } from "react/jsx-runtime";
-import { Box, Grid } from "@mui/material";
-import { Chessboard } from "react-chessboard";
-import { atom, useAtomValue, useSetAtom } from "jotai";
-import { useChessActions } from "@analysis/hooks/useChessActions";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import PawnPromotionUI from "@/components/PawnPromotionUI";
-import { Color, MoveClassification } from "@analysis/types/enums";
-import { getSquareRenderer } from "./squareRenderer";
-import EvaluationBar from "./evaluationBar";
-import { CLASSIFICATION_COLORS } from "@analysis/constants";
-import PlayerHeader from "./playerHeader";
-import { boardHueAtom, pieceSetAtom } from "./states";
-import tinycolor from "tinycolor2";
-function Board({
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { atom, useAtomValue } from 'jotai';
+import tinycolor from 'tinycolor2';
+import ChessBoardView from '@/components/ChessBoardView';
+import EvaluationBar from './evaluationBar';
+import PlayerHeader from './playerHeader';
+import { Color, MoveClassification } from '@analysis/types/enums';
+import { boardHueAtom, pieceSetAtom } from './states';
+import { useChessActions } from '@analysis/hooks/useChessActions';
+
+const BASE_BOARD_THEME = {
+  light: '#eaf2f6',
+  dark: '#a8c1cf',
+  lastMoveLight: '#bce4f0',
+  lastMoveDark: '#7ba7bd',
+};
+
+function getBoardThemeWithHue(hue) {
+  if (!hue) return BASE_BOARD_THEME;
+  return {
+    light: tinycolor(BASE_BOARD_THEME.light).spin(hue).toHexString(),
+    dark: tinycolor(BASE_BOARD_THEME.dark).spin(hue).toHexString(),
+    lastMoveLight: tinycolor(BASE_BOARD_THEME.lastMoveLight).spin(hue).toHexString(),
+    lastMoveDark: tinycolor(BASE_BOARD_THEME.lastMoveDark).spin(hue).toHexString(),
+  };
+}
+
+function toDisplayCoords(row, col, isWhiteBottom) {
+  if (isWhiteBottom) return { row, col };
+  return { row: 7 - row, col: 7 - col };
+}
+
+function toEngineCoords(row, col, isWhiteBottom) {
+  if (isWhiteBottom) return { row, col };
+  return { row: 7 - row, col: 7 - col };
+}
+
+function coordsToAlgebraic(row, col) {
+  const file = String.fromCharCode(97 + col);
+  const rank = String(8 - row);
+  return `${file}${rank}`;
+}
+
+function algebraicToCoords(square) {
+  if (!square) return null;
+  const file = square.charCodeAt(0) - 97;
+  const rank = Number(square[1]);
+  return { row: 8 - rank, col: file };
+}
+
+function toPieceCode(piece) {
+  if (!piece) return null;
+  const pieceType = piece.type.toUpperCase();
+  return `${piece.color}${pieceType}`;
+}
+
+function flipBoard(board) {
+  return board
+    .slice()
+    .reverse()
+    .map((row) => row.slice().reverse());
+}
+
+export default function Board({
   id: boardId,
   canPlay,
   gameAtom,
@@ -20,355 +69,293 @@ function Board({
   whitePlayer,
   blackPlayer,
   boardOrientation = Color.White,
-  currentPositionAtom = atom({}),
+  currentPositionAtom,
   showBestMoveArrow = false,
   showPlayerMoveIconAtom,
   showEvaluationBar = false
 }) {
-  const [boardPixelHeight, setBoardPixelHeight] = useState(boardSize || 400);
-  const setBoardContainerRef = useCallback((node) => {
-    if (!node) return;
-    const measured = node.offsetHeight || boardSize || 400;
-    setBoardPixelHeight((prev) => prev === measured ? prev : measured);
-  }, [boardSize]);
   const game = useAtomValue(gameAtom);
-  const { playMove } = useChessActions(gameAtom);
-  const clickedSquaresAtom = useMemo(() => atom([]), []);
-  const setClickedSquares = useSetAtom(clickedSquaresAtom);
-  const playableSquaresAtom = useMemo(() => atom([]), []);
-  const setPlayableSquares = useSetAtom(playableSquaresAtom);
-  const position = useAtomValue(currentPositionAtom);
-  const [showPromotionDialog, setShowPromotionDialog] = useState(false);
-  const [moveClickFrom, setMoveClickFrom] = useState(null);
-  const [moveClickTo, setMoveClickTo] = useState(null);
-  const pieceSet = useAtomValue(pieceSetAtom);
+  const currentPosition = useAtomValue(currentPositionAtom);
   const boardHue = useAtomValue(boardHueAtom);
-  const gameFen = game.fen();
+  const pieceSet = useAtomValue(pieceSetAtom);
+  const isWhiteBottom = boardOrientation === Color.White;
+  const { playMove } = useChessActions(gameAtom);
 
-  const getVisualCoords = useCallback((square) => {
-    if (!square) return null;
-    const col = square.charCodeAt(0) - 97;
-    const row = 8 - parseInt(square[1], 10);
-    const isFlipped = boardOrientation === Color.Black;
-    return {
-      row: isFlipped ? 7 - row : row,
-      col: isFlipped ? 7 - col : col
+  const [selectedSquare, setSelectedSquare] = useState(null);
+  const [validMoves, setValidMoves] = useState([]);
+  const [boardHeight, setBoardHeight] = useState(boardSize || 400);
+  const [boardWidth, setBoardWidth] = useState(boardSize || 400);
+  const [showPromotionUI, setShowPromotionUI] = useState(false);
+  const [promotionSquare, setPromotionSquare] = useState(null);
+  const [pendingPromotionMove, setPendingPromotionMove] = useState(null);
+  const boardContainerRef = useRef(null);
+
+  useEffect(() => {
+    const node = boardContainerRef.current;
+    if (!node) return;
+    const updateSize = () => {
+      if (node.offsetHeight > 0 && node.offsetWidth > 0) {
+        setBoardHeight((prev) => Math.abs(prev - node.offsetHeight) > 10 ? node.offsetHeight : prev);
+        setBoardWidth((prev) => Math.abs(prev - node.offsetWidth) > 10 ? node.offsetWidth : prev);
+      }
     };
-  }, [boardOrientation]);
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [boardSize]);
 
-  const promotionPieceImages = useMemo(() => {
-    const codes = ['wQ', 'wR', 'wB', 'wN', 'bQ', 'bR', 'bB', 'bN'];
+  const boardHistoryLength = game.history().length;
+
+  useEffect(() => {
+    setSelectedSquare(null);
+    setValidMoves([]);
+  }, [game, boardHistoryLength]);
+
+  const engineBoard = useMemo(() => {
+    const rawBoard = game.board();
+    return rawBoard.map((row) => row.map((piece) => toPieceCode(piece)));
+  }, [game, boardHistoryLength]);
+
+  const boardForRender = useMemo(() => {
+    return isWhiteBottom ? engineBoard : flipBoard(engineBoard);
+  }, [engineBoard, isWhiteBottom]);
+
+  const sideToMove = game.turn();
+  const isGameOver = game.isGameOver();
+
+  const isPiecePlayable = useCallback(
+    ({ piece }) => {
+      if (isGameOver || !canPlay) return false;
+      if (canPlay === true || canPlay === piece[0]) return true;
+      return false;
+    },
+    [canPlay, isGameOver]
+  );
+
+  const onSquareClick = useCallback(
+    (displayRow, displayCol) => {
+      if (isGameOver) return;
+
+      const { row, col } = toEngineCoords(displayRow, displayCol, isWhiteBottom);
+      const clickedSquare = coordsToAlgebraic(row, col);
+      const piece = engineBoard[row]?.[col] || null;
+      const isOwnPiece = !!piece && piece[0] === sideToMove && isPiecePlayable({ piece });
+
+      if (selectedSquare) {
+        const fromSquare = coordsToAlgebraic(selectedSquare.row, selectedSquare.col);
+        const candidateMoves = game.moves({ square: fromSquare, verbose: true });
+        const move = candidateMoves.find((m) => m.to === clickedSquare);
+
+        if (move) {
+          const isPromotion = move.flags.includes('p');
+          if (isPromotion) {
+            setPendingPromotionMove({ from: move.from, to: move.to });
+            setPromotionSquare({
+              row: displayRow,
+              col: displayCol,
+              color: sideToMove,
+            });
+            setShowPromotionUI(true);
+            return;
+          }
+
+          playMove({
+            from: move.from,
+            to: move.to,
+          });
+          setSelectedSquare(null);
+          setValidMoves([]);
+          return;
+        }
+      }
+
+      if (isOwnPiece) {
+        setSelectedSquare({ row, col });
+        const candidateMoves = game.moves({ square: clickedSquare, verbose: true });
+        setValidMoves(
+          candidateMoves.map((m) => {
+            const sq = algebraicToCoords(m.to);
+            const dispSq = toDisplayCoords(sq.row, sq.col, isWhiteBottom);
+            return { to: dispSq };
+          })
+        );
+      } else {
+        setSelectedSquare(null);
+        setValidMoves([]);
+      }
+    },
+    [game, isGameOver, isWhiteBottom, engineBoard, sideToMove, selectedSquare, playMove, isPiecePlayable]
+  );
+
+  const selectedForRender = useMemo(() => {
+    if (!selectedSquare) return null;
+    return toDisplayCoords(selectedSquare.row, selectedSquare.col, isWhiteBottom);
+  }, [selectedSquare, isWhiteBottom]);
+
+  const lastMove = useMemo(() => {
+    if (!currentPosition) return null;
+    
+    let moveObj = currentPosition.move;
+    if (!moveObj && game.history().length > 0) {
+      const h = game.history({ verbose: true });
+      moveObj = h[h.length - 1];
+    }
+    if (!moveObj || !moveObj.from || !moveObj.to) return null;
+
+    const fromSq = algebraicToCoords(moveObj.from);
+    const toSq = algebraicToCoords(moveObj.to);
+    return {
+      from: toDisplayCoords(fromSq.row, fromSq.col, isWhiteBottom),
+      to: toDisplayCoords(toSq.row, toSq.col, isWhiteBottom),
+    };
+  }, [currentPosition, game, isWhiteBottom]);
+
+  const kingInCheckPos = useMemo(() => {
+    if (!game.inCheck()) return null;
+    let kPos = null;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = engineBoard[r][c];
+        if (piece === `${sideToMove}K`) {
+          kPos = { row: r, col: c };
+          break;
+        }
+      }
+    }
+    if (!kPos) return null;
+    return toDisplayCoords(kPos.row, kPos.col, isWhiteBottom);
+  }, [game, engineBoard, sideToMove, isWhiteBottom]);
+
+  const moveClassification = currentPosition?.eval?.moveClassification || null;
+
+  const handlePromotion = useCallback(
+    (promoType) => {
+      if (!pendingPromotionMove) return;
+      playMove({
+        from: pendingPromotionMove.from,
+        to: pendingPromotionMove.to,
+        promotion: promoType,
+      });
+      setPendingPromotionMove(null);
+      setShowPromotionUI(false);
+      setSelectedSquare(null);
+      setValidMoves([]);
+    },
+    [pendingPromotionMove, playMove]
+  );
+
+  const handleCancelPromotion = useCallback(() => {
+    setPendingPromotionMove(null);
+    setShowPromotionUI(false);
+    setSelectedSquare(null);
+    setValidMoves([]);
+  }, []);
+
+  const activePieceImages = useMemo(() => {
+    const codes = ['wQ', 'wR', 'wB', 'wN', 'wP', 'wK', 'bQ', 'bR', 'bB', 'bN', 'bP', 'bK'];
     return codes.reduce((acc, code) => {
       acc[code] = `/piece/${pieceSet}/${code}.svg`;
       return acc;
     }, {});
   }, [pieceSet]);
 
-  const visualPromotionSquare = useMemo(() => {
-    if (!showPromotionDialog || !moveClickTo) return null;
-    const coords = getVisualCoords(moveClickTo);
-    if (!coords) return null;
-    const color = moveClickTo[1] === "8" ? "w" : "b";
-    return { ...coords, color };
-  }, [showPromotionDialog, moveClickTo, getVisualCoords]);
-  useEffect(() => {
-    setClickedSquares([]);
-  }, [gameFen, setClickedSquares]);
-  const isPiecePlayable = useCallback(
-    ({ piece }) => {
-      if (game.isGameOver() || !canPlay) return false;
-      if (canPlay === true || canPlay === piece[0]) return true;
-      return false;
-    },
-    [canPlay, game]
-  );
-  const onPieceDrop = useCallback(
-    (source, target, piece) => {
-      if (!isPiecePlayable({ piece })) return false;
+  const boardTheme = useMemo(() => getBoardThemeWithHue(boardHue), [boardHue]);
 
-      // Check for pawn promotion move during drag-and-drop
-      const isPawn = piece[1]?.toLowerCase() === "p";
-      const isPromotionRank = (piece[0] === "w" && target[1] === "8") || (piece[0] === "b" && target[1] === "1");
+  const arrowCoordinates = useMemo(() => {
+    if (!showBestMoveArrow) return null;
+    const bestMove = currentPosition?.lastEval?.bestMove;
+    if (typeof bestMove !== 'string' || bestMove.length < 4) return null;
+    
+    if (moveClassification === MoveClassification.Best || 
+        moveClassification === MoveClassification.Book || 
+        moveClassification === MoveClassification.Brilliant || 
+        moveClassification === MoveClassification.Great) {
+      return null;
+    }
+        
+    const from = algebraicToCoords(bestMove.slice(0, 2));
+    const to = algebraicToCoords(bestMove.slice(2, 4));
+    if (!from || !to) return null;
+    const fromDisplay = toDisplayCoords(from.row, from.col, isWhiteBottom);
+    const toDisplay = toDisplayCoords(to.row, to.col, isWhiteBottom);
+    return { from: fromDisplay, to: toDisplay };
+  }, [currentPosition, showBestMoveArrow, moveClassification, isWhiteBottom]);
 
-      if (isPawn && isPromotionRank) {
-        const moves = game.moves({ square: source, verbose: true });
-        const hasValidPromo = moves.some(m => m.to === target && m.flags.includes("p"));
-        if (hasValidPromo) {
-          setMoveClickFrom(source);
-          setMoveClickTo(target);
-          setShowPromotionDialog(true);
-          return false; // Return false to prevent react-chessboard from completing immediately
-        }
-      }
+  const fallbackAtom = useMemo(() => atom(false), []);
+  const showPlayerMoveIcon = useAtomValue(showPlayerMoveIconAtom || fallbackAtom);
 
-      const result = playMove({
-        from: source,
-        to: target,
-        promotion: piece[1]?.toLowerCase() ?? "q"
-      });
-      return !!result;
-    },
-    [isPiecePlayable, playMove, game, setMoveClickFrom, setMoveClickTo, setShowPromotionDialog]
-  );
-  const resetMoveClick = useCallback(
-    (square) => {
-      setMoveClickFrom(square ?? null);
-      setMoveClickTo(null);
-      setShowPromotionDialog(false);
-      if (square) {
-        const moves = game.moves({ square, verbose: true });
-        setPlayableSquares(moves.map((m) => m.to));
-      } else {
-        setPlayableSquares([]);
-      }
-    },
-    [setMoveClickFrom, setMoveClickTo, setPlayableSquares, game]
-  );
-  const handleSquareLeftClick = useCallback(
-    (square, piece) => {
-      setClickedSquares([]);
-      if (!moveClickFrom) {
-        if (piece && !isPiecePlayable({ piece })) return;
-        resetMoveClick(square);
-        return;
-      }
-      const validMoves = game.moves({ square: moveClickFrom, verbose: true });
-      const move = validMoves.find((m) => m.to === square);
-      if (!move) {
-        resetMoveClick(square);
-        return;
-      }
-      setMoveClickTo(square);
-      if (move.piece === "p" && (move.color === "w" && square[1] === "8" || move.color === "b" && square[1] === "1")) {
-        setShowPromotionDialog(true);
-        return;
-      }
-      const result = playMove({
-        from: moveClickFrom,
-        to: square
-      });
-      resetMoveClick(result ? void 0 : square);
-    },
-    [
-      game,
-      isPiecePlayable,
-      moveClickFrom,
-      playMove,
-      resetMoveClick,
-      setClickedSquares
-    ]
-  );
-  const handleSquareRightClick = useCallback(
-    (square) => {
-      setClickedSquares(
-        (prev) => prev.includes(square) ? prev.filter((s) => s !== square) : [...prev, square]
-      );
-    },
-    [setClickedSquares]
-  );
-  const handlePieceDragBegin = useCallback(
-    (_, square) => {
-      resetMoveClick(square);
-    },
-    [resetMoveClick]
-  );
-  const handlePieceDragEnd = useCallback(() => {
-    resetMoveClick();
-  }, [resetMoveClick]);
-  const onPromotionPieceSelect = useCallback(
-    (piece, from, to) => {
-      if (!piece) return false;
-      const promotionPiece = piece[1]?.toLowerCase() ?? "q";
-      if (moveClickFrom && moveClickTo) {
-        const result = playMove({
-          from: moveClickFrom,
-          to: moveClickTo,
-          promotion: promotionPiece
-        });
-        resetMoveClick();
-        return !!result;
-      }
-      if (from && to) {
-        const result = playMove({
-          from,
-          to,
-          promotion: promotionPiece
-        });
-        resetMoveClick();
-        return !!result;
-      }
-      resetMoveClick(moveClickFrom);
-      return false;
-    },
-    [moveClickFrom, moveClickTo, playMove, resetMoveClick]
-  );
-  const customArrows = useMemo(() => {
-    const bestMove = position?.lastEval?.bestMove;
-    const moveClassification = position?.eval?.moveClassification;
-    if (bestMove && showBestMoveArrow && moveClassification !== MoveClassification.Best && moveClassification !== MoveClassification.Book && moveClassification !== MoveClassification.Brilliant && moveClassification !== MoveClassification.Great) {
-      const bestMoveArrow = [
-        bestMove.slice(0, 2),
-        bestMove.slice(2, 4),
-        tinycolor(CLASSIFICATION_COLORS[MoveClassification.Best]).spin(-boardHue).toHexString()
-      ];
-      return [bestMoveArrow];
-    }
-    return [];
-  }, [position, showBestMoveArrow, boardHue]);
-  const SquareRenderer = useMemo(() => {
-    return getSquareRenderer({
-      currentPositionAtom,
-      clickedSquaresAtom,
-      playableSquaresAtom,
-      showPlayerMoveIconAtom,
-      boardSize: boardSize || 400
-    });
-  }, [
-    currentPositionAtom,
-    clickedSquaresAtom,
-    playableSquaresAtom,
-    showPlayerMoveIconAtom,
-    boardSize
-  ]);
-  const customPieces = useMemo(
-    () => PIECE_CODES.reduce((acc, piece) => {
-      acc[piece] = ({ squareWidth }) => /* @__PURE__ */ jsx(
-        Box,
-        {
-          width: squareWidth,
-          height: squareWidth,
-          sx: {
-            backgroundImage: `url(/piece/${pieceSet}/${piece}.svg)`,
-            backgroundSize: "contain"
-          }
-        }
-      );
-      return acc;
-    }, {}),
-    [pieceSet]
-  );
-  const customBoardStyle = useMemo(() => {
-    const commonBoardStyle = {
-      borderRadius: "5px",
-      boxShadow: "0 2px 10px rgba(0, 0, 0, 0.5)"
-    };
-    if (boardHue) {
-      return {
-        ...commonBoardStyle,
-        filter: `hue-rotate(${boardHue}deg)`
-      };
-    }
-    return commonBoardStyle;
-  }, [boardHue]);
-  return /* @__PURE__ */ jsxs(
-    Grid,
-    {
-      container: true,
-      justifyContent: "center",
-      alignItems: "center",
-      wrap: "nowrap",
-      width: boardSize,
-      children: [
-        showEvaluationBar && /* @__PURE__ */ jsx(
-          EvaluationBar,
-          {
-            height: boardPixelHeight || boardSize || 400,
-            boardOrientation,
-            currentPositionAtom
-          }
-        ),
-        /* @__PURE__ */ jsxs(
-          Grid,
-          {
-            container: true,
-            rowGap: 1.5,
-            justifyContent: "center",
-            alignItems: "center",
-            paddingLeft: { xs: 0.5, sm: showEvaluationBar ? 2 : 0 },
-            size: "grow",
-            children: [
-              /* @__PURE__ */ jsx(
-                PlayerHeader,
-                {
-                  color: boardOrientation === Color.White ? Color.Black : Color.White,
-                  gameAtom,
-                  player: boardOrientation === Color.White ? blackPlayer : whitePlayer
-                }
-              ),
-              /* @__PURE__ */ jsx(
-                Grid,
-                {
-                  container: true,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  ref: setBoardContainerRef,
-                  size: 12,
-                  sx: { position: "relative" },
-                  children: [
-                    /* @__PURE__ */ jsx(
-                      Chessboard,
-                      {
-                        id: `${boardId}-${canPlay}`,
-                        position: gameFen,
-                        onPieceDrop,
-                        boardOrientation: boardOrientation === Color.White ? "white" : "black",
-                        customBoardStyle,
-                        customArrows,
-                        isDraggablePiece: isPiecePlayable,
-                        customSquare: SquareRenderer,
-                        onSquareClick: handleSquareLeftClick,
-                        onSquareRightClick: handleSquareRightClick,
-                        onPieceDragBegin: handlePieceDragBegin,
-                        onPieceDragEnd: handlePieceDragEnd,
-                        onPromotionPieceSelect,
-                        showPromotionDialog: false,
-                        animationDuration: 200,
-                        customPieces
-                      }
-                    ),
-                    visualPromotionSquare && /* @__PURE__ */ jsx(
-                      PawnPromotionUI,
-                      {
-                        promotionSquare: visualPromotionSquare,
-                        onPromotion: (pieceType) => onPromotionPieceSelect(visualPromotionSquare.color + pieceType, moveClickFrom, moveClickTo),
-                        onCancel: () => resetMoveClick(moveClickFrom),
-                        activePieceImages: promotionPieceImages
-                      }
-                    )
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsx(
-                PlayerHeader,
-                {
-                  color: boardOrientation,
-                  gameAtom,
-                  player: boardOrientation === Color.White ? whitePlayer : blackPlayer
-                }
-              )
-            ]
-          }
-        )
-      ]
-    }
+  return (
+    <div className="flex w-full items-center justify-center">
+      {showEvaluationBar && (
+        <EvaluationBar
+          height={boardHeight}
+          boardOrientation={isWhiteBottom ? Color.White : Color.Black}
+          currentPositionAtom={currentPositionAtom}
+        />
+      )}
+      <div className="flex flex-col items-center flex-1 px-1">
+        <PlayerHeader
+          color={isWhiteBottom ? Color.Black : Color.White}
+          gameAtom={gameAtom}
+          player={isWhiteBottom ? blackPlayer : whitePlayer}
+        />
+        <div ref={boardContainerRef} className="relative w-full max-w-[800px] aspect-square my-1">
+          <ChessBoardView
+            board={boardForRender}
+            selectedSquare={selectedForRender}
+            validMoves={validMoves}
+            kingInCheckPos={kingInCheckPos}
+            lastMove={lastMove}
+            moveClassification={moveClassification}
+            showAnalysisMoveIcon={showPlayerMoveIcon}
+            onSquareClick={onSquareClick}
+            rankLabels={[]}
+            fileLabels={[]}
+            gameState={isGameOver ? 'game-over' : 'playing'}
+            isReviewMode={false}
+            enableDrag={true}
+            pieceAnimation={true}
+            dragAnimation={true}
+            activePieceImages={activePieceImages}
+            boardTheme={boardTheme}
+            showPromotionUI={showPromotionUI}
+            promotionSquare={promotionSquare}
+            onPromotion={handlePromotion}
+            onCancel={handleCancelPromotion}
+          />
+
+          {arrowCoordinates && (
+            <svg
+              className="pointer-events-none absolute inset-0 z-20"
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${boardWidth} ${boardHeight}`}
+            >
+              <defs>
+                <marker id="analysis-best-move-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 z" fill="rgba(34, 197, 94, 0.95)" />
+                </marker>
+              </defs>
+              <line
+                x1={(arrowCoordinates.from.col + 0.5) * (boardWidth / 8)}
+                y1={(arrowCoordinates.from.row + 0.5) * (boardHeight / 8)}
+                x2={(arrowCoordinates.to.col + 0.5) * (boardWidth / 8)}
+                y2={(arrowCoordinates.to.row + 0.5) * (boardHeight / 8)}
+                stroke="rgba(34, 197, 94, 0.75)"
+                strokeWidth={Math.max(4, boardWidth * 0.02)}
+                markerEnd="url(#analysis-best-move-arrow)"
+                opacity={0.8}
+              />
+            </svg>
+          )}
+        </div>
+        <PlayerHeader
+          color={isWhiteBottom ? Color.White : Color.Black}
+          gameAtom={gameAtom}
+          player={isWhiteBottom ? whitePlayer : blackPlayer}
+        />
+      </div>
+    </div>
   );
 }
-const PIECE_CODES = [
-  "wP",
-  "wB",
-  "wN",
-  "wR",
-  "wQ",
-  "wK",
-  "bP",
-  "bB",
-  "bN",
-  "bR",
-  "bQ",
-  "bK"
-];
-export {
-  PIECE_CODES,
-  Board as default
-};
-

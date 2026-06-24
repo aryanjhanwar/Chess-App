@@ -57,6 +57,19 @@ export const setSoundPreferences = ({ enabled, moveEnabled, captureEnabled, chec
   }
 };
 
+/**
+ * Convenience alias — set volume only.
+ * @param {number} v - Volume between 0 and 1.
+ */
+export const setSoundVolume = (v) => {
+  if (typeof v === 'number') setSoundPreferences({ volume: v });
+};
+
+/**
+ * Read-only snapshot of current sound preferences.
+ */
+export const getSoundPreferences = () => ({ ...soundPreferences });
+
 // Helper to play sound
 const playSound = (soundKey) => {
   if (!soundPreferences.enabled) return;
@@ -160,4 +173,24 @@ export const playIllegalSound = () => {
  */
 export const playTenSecondsSound = () => {
   playSound('tenseconds');
+};
+
+/**
+ * Play the correct sound for a chess.js move result object.
+ * Compatible with both the main-app and analysis-app move formats.
+ *
+ * @param {object|null} move - chess.js verbose move object, or null for illegal.
+ */
+export const playSoundFromMove = (move) => {
+  if (!move) return playIllegalSound();
+
+  const flags = String(move.flags || '');
+  const san   = String(move.san   || '');
+  const isCheck = san.includes('+') || san.includes('#');
+
+  if (isCheck) return playCheckSound();
+  if (flags.includes('k') || flags.includes('q')) return playCastleSound();
+  if (move.promotion) return playPromotionSound();
+  if (move.captured)  return playCaptureSound();
+  return playMoveSound();
 };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, memo } from 'react';
+import { useEffect, useMemo, memo, useRef, useState } from 'react';
 import { pieceImages as defaultPieceImages } from '../constants/theme';
 import { useDragAndDrop } from '../hooks/useDragAndDrop';
 import { toPublicPath } from '../utils/assetPath';
@@ -45,6 +45,104 @@ function hexToRgba(hex, alpha) {
   const b = parsed & 255;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+/**
+ * Convert algebraic notation (e.g. 'e2') to a visual row/col grid coordinate.
+ * Row 0 = top (rank 8), col 0 = left (file a).
+ * @param {string} square - Two-character algebraic square (e.g. 'e2').
+ * @returns {{ row: number, col: number }}
+ */
+function algebraicToGrid(square) {
+  if (!square || square.length < 2) return null;
+  const col = square.charCodeAt(0) - 97;
+  const row = 8 - parseInt(square[1], 10);
+  return { row, col };
+}
+
+/**
+ * Render SVG best-move arrows overlaid on the board.
+ * Each arrow is an object: { from: string, to: string, color: string }
+ * where `from`/`to` are algebraic squares (e.g. 'e2', 'e4').
+ */
+function ArrowLayer({ arrows, boardSize, isFlipped }) {
+  if (!arrows || arrows.length === 0) return null;
+
+  const sqSize = boardSize / 8;
+  const r = sqSize * 0.12; // arrowhead half-width
+
+  return (
+    <svg
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 25,
+      }}
+      viewBox={`0 0 ${boardSize} ${boardSize}`}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        {arrows.map((arrow, i) => (
+          <marker
+            key={`marker-${i}`}
+            id={`arrowhead-${i}`}
+            markerWidth="4"
+            markerHeight="4"
+            refX="2"
+            refY="2"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 4 2, 0 4"
+              fill={arrow.color || 'rgba(0,150,255,0.75)'}
+            />
+          </marker>
+        ))}
+      </defs>
+      {arrows.map((arrow, i) => {
+        const fromGrid = algebraicToGrid(arrow.from);
+        const toGrid   = algebraicToGrid(arrow.to);
+        if (!fromGrid || !toGrid) return null;
+
+        // Flip coordinates if board is flipped (Black on bottom)
+        const fromRow = isFlipped ? 7 - fromGrid.row : fromGrid.row;
+        const fromCol = isFlipped ? 7 - fromGrid.col : fromGrid.col;
+        const toRow   = isFlipped ? 7 - toGrid.row   : toGrid.row;
+        const toCol   = isFlipped ? 7 - toGrid.col   : toGrid.col;
+
+        const x1 = fromCol * sqSize + sqSize * 0.5;
+        const y1 = fromRow * sqSize + sqSize * 0.5;
+        const x2 = toCol   * sqSize + sqSize * 0.5;
+        const y2 = toRow   * sqSize + sqSize * 0.5;
+
+        // Shorten line so it doesn't overlap the arrowhead
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const x2s = x2 - (dx / len) * sqSize * 0.32;
+        const y2s = y2 - (dy / len) * sqSize * 0.32;
+
+        return (
+          <line
+            key={`arrow-${i}`}
+            x1={x1}
+            y1={y1}
+            x2={x2s}
+            y2={y2s}
+            stroke={arrow.color || 'rgba(0,150,255,0.75)'}
+            strokeWidth={r * 1.7}
+            strokeLinecap="round"
+            markerEnd={`url(#arrowhead-${i})`}
+            opacity="0.82"
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 
 const NOOP = () => {};
 
@@ -170,7 +268,38 @@ export default function ChessBoardView({
   promotionSquare,
   onPromotion,
   onCancel,
+  /**
+   * Analysis arrow overlays.
+   * Array of { from: string, to: string, color?: string }
+   * where from/to are algebraic squares (e.g. 'e2', 'e4').
+   */
+  arrows = [],
+  /**
+   * Whether the board is flipped (Black playing from bottom).
+   * Required for correct arrow coordinate mapping.
+   */
+  isFlipped = false,
+  /**
+   * Optional CSS filter to apply to the whole board wrapper
+   * (e.g. 'hue-rotate(45deg)' for analysis board theming).
+   */
+  boardStyle = {},
 }) {
+  const boardRef2 = useRef(null);
+  const [boardPixelSize, setBoardPixelSize] = useState(400);
+
+  // Measure the board size for accurate SVG arrow coordinates
+  useEffect(() => {
+    if (!boardRef2.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) {
+        setBoardPixelSize(entry.contentRect.width);
+      }
+    });
+    ro.observe(boardRef2.current);
+    return () => ro.disconnect();
+  }, []);
+
   const {
     dragState,
     handleMouseDown,
@@ -226,9 +355,9 @@ export default function ChessBoardView({
   const isLastMoveSquare = (row, col) => lastMoveSet.has(`${row}-${col}`);
 
   return (
-    <div className="flex flex-col relative w-full flex-1">
+    <div className="flex flex-col relative w-full flex-1" style={boardStyle}>
       <div 
-        ref={boardRef}
+        ref={(el) => { boardRef.current = el; boardRef2.current = el; }}
         className="w-full aspect-square grid grid-cols-8 grid-rows-8 gap-0 shadow-2xl rounded-lg overflow-hidden relative"
         style={{
           userSelect: 'none',
@@ -293,6 +422,9 @@ export default function ChessBoardView({
             );
           })
         )}
+
+        {/* SVG Arrow overlay for analysis best-move indicators */}
+        <ArrowLayer arrows={arrows} boardSize={boardPixelSize} isFlipped={isFlipped} />
       </div>
 
       {/* Floating drag piece layer */}

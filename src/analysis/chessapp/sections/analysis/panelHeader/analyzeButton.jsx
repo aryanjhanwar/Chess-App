@@ -13,7 +13,7 @@ import {
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { getEvaluateGameParams } from "@/shared/chess/analysis/chess";
 import { useGameDatabase } from "@analysis/hooks/useGameDatabase";
-import { LoadingButton } from "@mui/lab";
+import { Button } from "@mui/material";
 import { useEngine } from "@analysis/hooks/useEngine";
 import { logAnalyticsEvent } from "@analysis/lib/firebase";
 import { useEffect, useCallback } from "react";
@@ -97,7 +97,7 @@ function AnalyzeButton() {
   }, [gameEval, readyToAnalyse, handleAnalyze]);
   if (evaluationProgress) return null;
   return /* @__PURE__ */ jsx(
-    LoadingButton,
+    Button,
     {
       variant: "contained",
       size: "small",

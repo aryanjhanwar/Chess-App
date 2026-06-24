@@ -7,7 +7,7 @@ import { useChessActions } from "@analysis/hooks/useChessActions";
 import { useEffect } from "react";
 import { isInViewport } from "@analysis/lib/helpers";
 import PrettyMoveSan from "@analysis/components/prettyMoveSan";
-import { toPublicPath } from "@analysis/lib/publicPath";
+import { toPublicPath } from "@/utils/assetPath";
 function MoveItem({
   san,
   moveClassification,
