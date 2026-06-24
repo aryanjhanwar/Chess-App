@@ -144,6 +144,99 @@ function ArrowLayer({ arrows, boardSize, isFlipped }) {
 }
 
 
+function usePieceMap(board) {
+  const piecesRef = useRef(new Map());
+  const prevBoardRef = useRef(null);
+  
+  const currentBoard = board;
+  
+  if (prevBoardRef.current !== currentBoard) {
+     const oldBoard = prevBoardRef.current;
+     if (!oldBoard) {
+       currentBoard.forEach((row, r) => row.forEach((p, c) => {
+         if (p) {
+           const id = `${p}-${Math.random()}`;
+           piecesRef.current.set(id, { id, type: p, row: r, col: c });
+         }
+       }));
+     } else {
+       const oldPieces = [];
+       const newPieces = [];
+       
+       for (let r=0; r<8; r++) {
+         for (let c=0; c<8; c++) {
+           const oldP = oldBoard[r][c];
+           const newP = currentBoard[r][c];
+           if (oldP !== newP) {
+             if (oldP) oldPieces.push({ type: oldP, row: r, col: c });
+             if (newP) newPieces.push({ type: newP, row: r, col: c });
+           }
+         }
+       }
+       
+       if (oldPieces.length > 4 || (oldPieces.length === 0 && newPieces.length > 0)) {
+         piecesRef.current.clear();
+         currentBoard.forEach((row, r) => row.forEach((p, c) => {
+           if (p) {
+             const id = `${p}-${Math.random()}`;
+             piecesRef.current.set(id, { id, type: p, row: r, col: c });
+           }
+         }));
+       } else {
+         const matchedNewIndices = new Set();
+         const movedPieces = [];
+         
+         oldPieces.forEach(oldP => {
+           const matchIdx = newPieces.findIndex((newP, i) => !matchedNewIndices.has(i) && newP.type === oldP.type);
+           if (matchIdx !== -1) {
+             matchedNewIndices.add(matchIdx);
+             movedPieces.push({ old: oldP, new: newPieces[matchIdx] });
+           } else {
+             movedPieces.push({ old: oldP, new: null });
+           }
+         });
+         
+         newPieces.forEach((newP, i) => {
+           if (!matchedNewIndices.has(i)) {
+             movedPieces.push({ old: null, new: newP });
+           }
+         });
+         
+         movedPieces.forEach(({ old: oldP, new: newP }) => {
+           if (oldP && newP) {
+             let foundId = null;
+             for (const [id, p] of piecesRef.current.entries()) {
+               if (p.row === oldP.row && p.col === oldP.col && p.type === oldP.type) {
+                 foundId = id; break;
+               }
+             }
+             if (foundId) {
+               const p = piecesRef.current.get(foundId);
+               p.row = newP.row;
+               p.col = newP.col;
+               p.type = newP.type;
+             }
+           } else if (oldP && !newP) {
+             let foundId = null;
+             for (const [id, p] of piecesRef.current.entries()) {
+               if (p.row === oldP.row && p.col === oldP.col && p.type === oldP.type) {
+                 foundId = id; break;
+               }
+             }
+             if (foundId) piecesRef.current.delete(foundId);
+           } else if (!oldP && newP) {
+             const id = `${newP.type}-${Math.random()}`;
+             piecesRef.current.set(id, { id, type: newP.type, row: newP.row, col: newP.col });
+           }
+         });
+       }
+     }
+     prevBoardRef.current = currentBoard;
+  }
+  
+  return Array.from(piecesRef.current.values());
+}
+
 const NOOP = () => {};
 
 // Memoized Square component - only re-renders when its props change
@@ -180,35 +273,11 @@ const Square = memo(({
       className={`w-full h-full flex items-center justify-center cursor-pointer relative`}
       style={{ ...bgStyle }}
     >
-      {piece && (
-        <img 
-          src={activePieceImages[piece] || defaultPieceImages[piece]} 
-          alt={piece}
-          className={`absolute inset-[7.5%] w-[85%] h-[85%] z-10 object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
-          draggable="false"
-          style={{
-            pointerEvents: 'none',
-            transition: pieceAnimation
-              ? 'opacity 0.12s ease-out, transform 0.16s ease-out'
-              : 'none'
-          }}
-          onError={(event) => {
-            const element = event.currentTarget;
-            const currentTry = Number(element.dataset.fallbackTry || 0);
-            const fallback = currentTry === 0
-              ? getPngFallbackFromSvg(element.src) || getNextPieceFallback(element.src, currentTry)
-              : getNextPieceFallback(element.src, currentTry);
-            if (!fallback) return;
-            element.dataset.fallbackTry = String(currentTry + 1);
-            element.src = fallback;
-          }}
-        />
-      )}
       {showAnalysisMoveIcon && isLastMoveTo && moveClassification && (
         <img
           src={toPublicPath(`icons/${moveClassification}.png`)}
           alt="move-classification"
-          className="absolute top-0.5 right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 pointer-events-none z-10"
+          className="absolute -top-1 -right-1 w-5 h-5 sm:w-[1.375rem] sm:h-[1.375rem] pointer-events-none z-[11] drop-shadow-md"
           draggable="false"
         />
       )}
@@ -288,7 +357,29 @@ export default function ChessBoardView({
   const boardRef2 = useRef(null);
   const [boardPixelSize, setBoardPixelSize] = useState(400);
 
-  // Measure the board size for accurate SVG arrow coordinates
+  // Fast Scrubbing Auto-Detect
+  const lastBoardUpdateRef = useRef(Date.now());
+  const isScrubbingRef = useRef(false);
+  const scrubTimeoutRef = useRef(null);
+
+  const now = Date.now();
+  if (now - lastBoardUpdateRef.current < 180) {
+    isScrubbingRef.current = true;
+  }
+  lastBoardUpdateRef.current = now;
+
+  useEffect(() => {
+    if (isScrubbingRef.current) {
+      if (scrubTimeoutRef.current) clearTimeout(scrubTimeoutRef.current);
+      scrubTimeoutRef.current = setTimeout(() => {
+        isScrubbingRef.current = false;
+      }, 200);
+    }
+  });
+
+  const activePieceAnimation = pieceAnimation && !isScrubbingRef.current;
+
+  const mappedPieces = usePieceMap(board);
   useEffect(() => {
     if (!boardRef2.current) return;
     const ro = new ResizeObserver(([entry]) => {
@@ -412,7 +503,7 @@ export default function ChessBoardView({
                 moveClassification={moveClassification}
                 showAnalysisMoveIcon={showAnalysisMoveIcon}
                 isBeingDragged={isBeingDragged}
-                pieceAnimation={pieceAnimation}
+                pieceAnimation={activePieceAnimation}
                 compactMode={compactMode}
                 activePieceImages={activePieceImages}
                 onSquareClick={onSquareClick}
@@ -422,6 +513,42 @@ export default function ChessBoardView({
             );
           })
         )}
+
+        {/* PIECES LAYER */}
+        {mappedPieces.map((p) => {
+          const isBeingDragged = dragState.isDragging && dragState.fromRow === p.row && dragState.fromCol === p.col;
+          const isSelected = selectedSquare?.row === p.row && selectedSquare?.col === p.col;
+          return (
+            <div
+              key={p.id}
+              className="absolute w-[12.5%] h-[12.5%] z-10 pointer-events-none flex items-center justify-center"
+              style={{
+                transform: `translate(${p.col * 100}%, ${p.row * 100}%)`,
+                transition: activePieceAnimation && !isBeingDragged ? 'transform 0.16s ease-out' : 'none'
+              }}
+            >
+               <img
+                  src={activePieceImages[p.type] || defaultPieceImages[p.type]} 
+                  alt=""
+                  className={`w-[85%] h-[85%] object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
+                  draggable="false"
+                  style={{
+                    transition: activePieceAnimation ? 'opacity 0.12s ease-out, transform 0.16s ease-out' : 'none'
+                  }}
+                  onError={(event) => {
+                    const element = event.currentTarget;
+                    const currentTry = Number(element.dataset.fallbackTry || 0);
+                    const fallback = currentTry === 0
+                      ? getPngFallbackFromSvg(element.src) || getNextPieceFallback(element.src, currentTry)
+                      : getNextPieceFallback(element.src, currentTry);
+                    if (!fallback) return;
+                    element.dataset.fallbackTry = String(currentTry + 1);
+                    element.src = fallback;
+                  }}
+               />
+            </div>
+          );
+        })}
 
         {/* SVG Arrow overlay for analysis best-move indicators */}
         <ArrowLayer arrows={arrows} boardSize={boardPixelSize} isFlipped={isFlipped} />
@@ -440,9 +567,9 @@ export default function ChessBoardView({
             willChange: 'transform'
           }}
         >
-          <img
+           <img
             src={activePieceImages[dragState.piece] || defaultPieceImages[dragState.piece]}
-            alt={dragState.piece}
+            alt=""
             className="w-14 h-14 object-contain select-none"
             draggable="false"
             style={{ margin: '8px', pointerEvents: 'none', transition: dragAnimation ? 'transform 0.08s linear' : 'none' }}

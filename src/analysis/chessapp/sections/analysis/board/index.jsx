@@ -5,27 +5,12 @@ import ChessBoardView from '../../../../../components/ChessBoardView.jsx';
 import EvaluationBar from '@analysis/components/board/evaluationBar';
 import { Color, MoveClassification } from '@analysis/types/enums';
 import { boardAtom, boardOrientationAtom, currentPositionAtom, gameAtom, gameEvalAtom, showBestMoveArrowAtom, showPlayerMoveIconAtom } from '../states';
-import { boardHueAtom, pieceSetAtom } from '@analysis/components/board/states';
+import { boardThemeAtom } from '@/state/themeState';
+import { BOARD_THEME_MAP } from '@/constants/boardThemes';
+import { pieceSetAtom } from '@analysis/components/board/states';
 import { toPublicPath } from '@/utils/assetPath';
 import { useChessActions } from '@analysis/hooks/useChessActions';
-
-const PIECE_CODES = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
-const BASE_BOARD_THEME = {
-  light: '#eaf2f6',
-  dark: '#a8c1cf',
-  lastMoveLight: '#bce4f0',
-  lastMoveDark: '#7ba7bd',
-};
-
-function getBoardThemeWithHue(hue) {
-  if (!hue) return BASE_BOARD_THEME;
-  return {
-    light: tinycolor(BASE_BOARD_THEME.light).spin(hue).toHexString(),
-    dark: tinycolor(BASE_BOARD_THEME.dark).spin(hue).toHexString(),
-    lastMoveLight: tinycolor(BASE_BOARD_THEME.lastMoveLight).spin(hue).toHexString(),
-    lastMoveDark: tinycolor(BASE_BOARD_THEME.lastMoveDark).spin(hue).toHexString(),
-  };
-}
+import { buildPieceImages } from '@/constants/theme';
 
 function bestMoveArrowCoords(bestMove, isWhiteBottom) {
   if (typeof bestMove !== 'string' || bestMove.length < 4) return null;
@@ -60,7 +45,7 @@ function algebraicToCoords(square) {
 
 function toPieceCode(piece) {
   if (!piece) return null;
-  const pieceType = piece.type.toUpperCase();
+  const pieceType = piece.type === 'p' ? 'p' : piece.type.toUpperCase();
   return `${piece.color}${pieceType}`;
 }
 
@@ -77,7 +62,7 @@ function BitboardAnalysisBoard() {
   const isWhiteBottom = useAtomValue(boardOrientationAtom);
   const currentPosition = useAtomValue(currentPositionAtom);
   const gameEval = useAtomValue(gameEvalAtom);
-  const boardHue = useAtomValue(boardHueAtom);
+  const boardThemeKey = useAtomValue(boardThemeAtom);
   const pieceSet = useAtomValue(pieceSetAtom);
   const showBestMoveArrow = useAtomValue(showBestMoveArrowAtom);
   const showPlayerMoveIcon = useAtomValue(showPlayerMoveIconAtom);
@@ -254,14 +239,11 @@ function BitboardAnalysisBoard() {
     return currentPosition?.eval?.moveClassification;
   }, [boardHistoryLength, currentPosition?.eval?.moveClassification, gameEval]);
 
-  const activePieceImages = useMemo(() => {
-    return PIECE_CODES.reduce((acc, code) => {
-      acc[code] = toPublicPath(`piece/${pieceSet}/${code}.svg`);
-      return acc;
-    }, {});
-  }, [pieceSet]);
+  const activePieceImages = useMemo(() => buildPieceImages(pieceSet), [pieceSet]);
 
-  const boardTheme = useMemo(() => getBoardThemeWithHue(boardHue), [boardHue]);
+  const boardTheme = useMemo(() => {
+    return BOARD_THEME_MAP[boardThemeKey] || BOARD_THEME_MAP['classic-blue'];
+  }, [boardThemeKey]);
 
   const arrowCoordinates = useMemo(() => {
     if (!showBestMoveArrow) return null;

@@ -25,7 +25,8 @@ import MobileNavigation from './features/navigation/MobileNavigation';
 import MobileGameArea from './features/game/MobileGameArea';
 import GameModals from './features/game/GameModals';
 import { useAssetManifest } from './features/assets/useAssetManifest';
-import { useUiSettings } from './features/settings/useUiSettings';
+import { useAtomValue } from 'jotai';
+import { uiSettingsAtom } from './state/themeState';
 import { sanitizeUiSettings, readStoredJson } from './features/settings/storage';
 import { useReviewController } from './features/review/useReviewController';
 import { useMultiplayerController } from './features/multiplayer/useMultiplayerController';
@@ -229,14 +230,8 @@ function App() {
     return clampAnalysisSettings(stored);
   });
 
-  // ── UI settings ──────────────────────────────────────────────────
-  const {
-    uiSettings,
-    setUiSettings,
-    handleUiSettingsChange,
-    handleApplyThemePreset,
-    handleResetVisualSettings
-  } = useUiSettings(STORAGE_KEYS);
+  // ── UI settings (via Jotai) ──────────────────────────────────────
+  const uiSettings = useAtomValue(uiSettingsAtom);
 
   // ── Asset manifest ───────────────────────────────────────────────
   const {
@@ -1213,10 +1208,6 @@ function App() {
 
         showAppSettings={showAppSettings}
         setShowAppSettings={setShowAppSettings}
-        uiSettings={uiSettings}
-        handleUiSettingsChange={handleUiSettingsChange}
-        handleApplyThemePreset={handleApplyThemePreset}
-        handleResetVisualSettings={handleResetVisualSettings}
         boardSurfaceOptions={boardSurfaceOptions}
         pieceSetOptions={pieceSetOptions}
 

@@ -4,7 +4,7 @@ import { Grid, IconButton, Tooltip } from "@mui/material";
 import { useAtomValue } from "jotai";
 import { boardAtom, gameAtom } from "../states";
 import { useChessActions } from "@analysis/hooks/useChessActions";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 function NextMoveButton() {
   const { playMove: playBoardMove } = useChessActions(boardAtom);
   const game = useAtomValue(gameAtom);
@@ -20,7 +20,7 @@ function NextMoveButton() {
     return map;
   }, [game]);
   const isButtonEnabled = boardHistory.length < gameHistory.length && gameHistory.slice(0, boardHistory.length).join() === boardHistory.join();
-  const addNextGameMoveToBoard = useCallback(() => {
+  const addNextGameMoveToBoard = useCallback((options = {}) => {
     if (!isButtonEnabled) return;
     const nextMoveIndex = boardHistory.length;
     const nextMove = gameHistoryVerbose[nextMoveIndex];
@@ -30,14 +30,21 @@ function NextMoveButton() {
         from: nextMove.from,
         to: nextMove.to,
         promotion: nextMove.promotion,
-        comment
+        comment,
+        muteSound: options.muteSound
       });
     }
   }, [boardHistory.length, commentsByFen, gameHistoryVerbose, isButtonEnabled, playBoardMove]);
+
+  const lastKeyTimeRef = useRef(0);
+
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "ArrowRight") {
-        addNextGameMoveToBoard();
+        const now = Date.now();
+        const isScrubbing = now - lastKeyTimeRef.current < 150;
+        lastKeyTimeRef.current = now;
+        addNextGameMoveToBoard({ muteSound: isScrubbing });
       }
     };
     window.addEventListener("keydown", onKeyDown);

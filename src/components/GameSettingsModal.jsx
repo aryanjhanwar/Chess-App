@@ -13,15 +13,18 @@ function ToggleRow({ label, checked, onChange }) {
   );
 }
 
+import { useAtomValue, useSetAtom } from 'jotai';
+import { uiSettingsAtom, applyUiSettingsAtom } from '../state/themeState';
+
 export default function GameSettingsModal({
   onClose,
-  uiSettings,
-  onUiSettingsChange,
   onFlipBoard,
   onResign,
   onOfferDraw,
   canUseInGameActions,
 }) {
+  const uiSettings = useAtomValue(uiSettingsAtom);
+  const onUiSettingsChange = useSetAtom(applyUiSettingsAtom);
   return (
     <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/60 px-4 backdrop-blur-[2px]">
       <button type="button" className="absolute inset-0" onClick={onClose} aria-label="Close game settings" />

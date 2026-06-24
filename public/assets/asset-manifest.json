@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T05:02:05.004Z",
+  "generatedAt": "2026-06-24T07:06:04.346Z",
   "boards": [
     {
       "id": "8_bit",
@@ -209,6 +209,7 @@
     "condal",
     "cooke",
     "dash",
+    "default",
     "dubrovny",
     "fantasy",
     "firi",
@@ -638,6 +639,20 @@
       "wp.png",
       "wq.png",
       "wr.png"
+    ],
+    "default": [
+      "bB.svg",
+      "bK.svg",
+      "bN.svg",
+      "bP.svg",
+      "bQ.svg",
+      "bR.svg",
+      "wB.svg",
+      "wK.svg",
+      "wN.svg",
+      "wP.svg",
+      "wQ.svg",
+      "wR.svg"
     ],
     "dubrovny": [
       "bB.svg",

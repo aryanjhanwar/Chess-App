@@ -1,6 +1,8 @@
 import { jsx, jsxs } from "react/jsx-runtime";
+import { memo } from "react";
 import { Box, Grid, Typography } from "@mui/material";
 import MoveItem from "./moveItem";
+
 function MovesLine({ moves, moveNb }) {
   return /* @__PURE__ */ jsxs(
     Grid,
@@ -21,7 +23,14 @@ function MovesLine({ moves, moveNb }) {
     }
   );
 }
-export {
-  MovesLine as default
-};
+
+export default memo(MovesLine, (prevProps, nextProps) => {
+  if (prevProps.moveNb !== nextProps.moveNb) return false;
+  if (prevProps.moves.length !== nextProps.moves.length) return false;
+  for (let i = 0; i < prevProps.moves.length; i++) {
+    if (prevProps.moves[i].san !== nextProps.moves[i].san) return false;
+    if (prevProps.moves[i].moveClassification !== nextProps.moves[i].moveClassification) return false;
+  }
+  return true;
+});
 

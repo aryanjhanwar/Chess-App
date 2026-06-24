@@ -8,7 +8,7 @@ import FlipBoardButton from "./flipBoardButton";
 import NextMoveButton from "./nextMoveButton";
 import GoToLastPositionButton from "./goToLastPositionButton";
 import SaveButton from "./saveButton";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 function PanelToolBar() {
   const board = useAtomValue(boardAtom);
   const { resetToStartingPosition: resetBoard, undoMove: undoBoardMove } = useChessActions(boardAtom);
@@ -25,11 +25,17 @@ function PanelToolBar() {
       color: "#a5f3fc"
     }
   };
+  const lastKeyTimeRef = useRef(0);
+
   useEffect(() => {
     const onKeyDown = (e) => {
       if (boardHistoryLength === 0) return;
+      const now = Date.now();
+      const isScrubbing = now - lastKeyTimeRef.current < 150;
+      lastKeyTimeRef.current = now;
+      
       if (e.key === "ArrowLeft") {
-        undoBoardMove();
+        undoBoardMove({ muteSound: isScrubbing });
       } else if (e.key === "ArrowDown") {
         resetBoard();
       }

@@ -19,7 +19,9 @@
  */
 
 import React, { useMemo } from 'react';
-import { toPublicPath } from '../utils/assetPath';
+import { useAtomValue } from 'jotai';
+import { buildPieceImages } from '../constants/theme';
+import { pieceStyleAtom } from '../state/themeState';
 
 // ── Piece value map for material advantage calculation ─────────────────────
 const PIECE_VALUES = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -119,8 +121,8 @@ export default function CapturedPiecesList({
   /** 'w' | 'b' — which side's captures to show (used with FEN format). */
   color,
 
-  /** Piece image set name (e.g. 'staunty', 'tatiana'). */
-  pieceStyle = 'staunty',
+  /** Piece image set name (optional, overrides global state). */
+  pieceStyle,
 
   /** Visual scale factor (default matches the analysis app's 0.55rem scale). */
   scale = 0.55,
@@ -148,14 +150,20 @@ export default function CapturedPiecesList({
 
   const rem = (n) => `${n * scale}rem`;
 
-  // Determine opposing color for display (player captured opponent's pieces)
-  // In array format, piece codes already encode the captured piece's color.
-  // In FEN format, playerPieces are already the correct color.
-  const getImageSrc = (pieceCode) => {
-    // pieceCode is like 'bN', 'wQ', 'bp', etc.
-    const colorChar = pieceCode[0];
-    const typeChar  = pieceCode[1]?.toUpperCase() ?? pieceCode[0].toUpperCase();
-    return toPublicPath(`piece/${pieceStyle}/${colorChar}${typeChar}.svg`);
+  const globalPieceStyle = useAtomValue(pieceStyleAtom);
+  const activePieceStyle = pieceStyle || globalPieceStyle || 'staunty';
+  const pieceImages = useMemo(() => buildPieceImages(activePieceStyle), [activePieceStyle]);
+
+  const captureColorChar = useMemo(() => {
+    if (color === 'b' || color === 'black') return 'w';
+    if (color === 'w' || color === 'white') return 'b';
+    if (playerPieces.length > 0 && playerPieces[0].length >= 2) return playerPieces[0][0];
+    return 'b';
+  }, [color, playerPieces]);
+
+  const getImageSrc = (type) => {
+    const typeChar = type.toLowerCase() === 'p' ? 'p' : type.toUpperCase();
+    return pieceImages[`${captureColorChar}${typeChar}`];
   };
 
   const orderedEntries = PIECE_DISPLAY_ORDER
@@ -168,8 +176,7 @@ export default function CapturedPiecesList({
     <div
       style={{
         display: 'flex',
-        alignItems: 'flex-end',
-        gap: '0.15rem',
+        alignItems: 'center',
         marginLeft: `-${0.3 * scale}rem`,
         flexWrap: 'nowrap',
         overflow: 'visible',
@@ -179,41 +186,53 @@ export default function CapturedPiecesList({
         <div
           key={type}
           style={{
-            display: 'flex',
-            flexDirection: 'row',
-            marginRight: `-${1.2 * scale}rem`,
+            position: 'relative',
+            display: 'inline-flex',
+            marginRight: `0.05rem`,
           }}
         >
-          {Array.from({ length: count }).map((_, i) => {
-            // Reconstruct the piece code based on grouped type
-            // For FEN mode: player captures opponent pieces → show opponent color
-            const side = (color === 'b' || color === 'black') ? 'w' : 'b';
-            const code = `${side}${type.toUpperCase()}`;
-            return (
-              <img
-                key={`${type}-${i}`}
-                src={getImageSrc(code)}
-                alt={code}
-                style={{
-                  width: rem(2),
-                  height: rem(2),
-                  objectFit: 'contain',
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                }}
-                draggable="false"
-              />
-            );
-          })}
+          <img
+            src={getImageSrc(type)}
+            alt=""
+            style={{
+              width: rem(2.6),
+              height: rem(2.6),
+              objectFit: 'contain',
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+            draggable="false"
+          />
+          {count > 1 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: rem(-0.2),
+                right: rem(-0.2),
+                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                color: 'white',
+                borderRadius: '50%',
+                width: rem(1.35),
+                height: rem(1.35),
+                fontSize: rem(0.85),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                zIndex: 10,
+              }}
+            >
+              {count}
+            </div>
+          )}
         </div>
       ))}
 
       {advantage > 0 && (
         <span
           style={{
-            fontSize: rem(1.5),
-            lineHeight: rem(1.5),
-            marginLeft: `${0.3 + 1.2 * scale}rem`,
+            fontSize: rem(1.6),
+            marginLeft: '0.2rem',
             color: 'rgba(255,255,255,0.75)',
             fontWeight: 600,
           }}

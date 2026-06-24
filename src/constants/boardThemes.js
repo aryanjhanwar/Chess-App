@@ -64,7 +64,7 @@ export const DEFAULT_UI_SETTINGS = {
   showCoordinates: true,
   highlightLastMove: true,
   showLegalMoveDots: true,
-  pieceStyle: 'staunty',
+  pieceStyle: 'default',
   pieceAnimation: true,
   dragAnimation: true,
   pieceMovement: 'smooth',

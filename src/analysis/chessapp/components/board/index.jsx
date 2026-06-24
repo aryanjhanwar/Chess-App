@@ -5,25 +5,12 @@ import ChessBoardView from '@/components/ChessBoardView';
 import EvaluationBar from './evaluationBar';
 import PlayerHeader from './playerHeader';
 import { Color, MoveClassification } from '@analysis/types/enums';
-import { boardHueAtom, pieceSetAtom } from './states';
+import { pieceSetAtom } from './states';
 import { useChessActions } from '@analysis/hooks/useChessActions';
 
-const BASE_BOARD_THEME = {
-  light: '#eaf2f6',
-  dark: '#a8c1cf',
-  lastMoveLight: '#bce4f0',
-  lastMoveDark: '#7ba7bd',
-};
-
-function getBoardThemeWithHue(hue) {
-  if (!hue) return BASE_BOARD_THEME;
-  return {
-    light: tinycolor(BASE_BOARD_THEME.light).spin(hue).toHexString(),
-    dark: tinycolor(BASE_BOARD_THEME.dark).spin(hue).toHexString(),
-    lastMoveLight: tinycolor(BASE_BOARD_THEME.lastMoveLight).spin(hue).toHexString(),
-    lastMoveDark: tinycolor(BASE_BOARD_THEME.lastMoveDark).spin(hue).toHexString(),
-  };
-}
+import { buildPieceImages } from '@/constants/theme';
+import { boardThemeAtom } from '@/state/themeState';
+import { BOARD_THEME_MAP } from '@/constants/boardThemes';
 
 function toDisplayCoords(row, col, isWhiteBottom) {
   if (isWhiteBottom) return { row, col };
@@ -50,7 +37,7 @@ function algebraicToCoords(square) {
 
 function toPieceCode(piece) {
   if (!piece) return null;
-  const pieceType = piece.type.toUpperCase();
+  const pieceType = piece.type === 'p' ? 'p' : piece.type.toUpperCase();
   return `${piece.color}${pieceType}`;
 }
 
@@ -76,7 +63,7 @@ export default function Board({
 }) {
   const game = useAtomValue(gameAtom);
   const currentPosition = useAtomValue(currentPositionAtom);
-  const boardHue = useAtomValue(boardHueAtom);
+  const boardThemeKey = useAtomValue(boardThemeAtom);
   const pieceSet = useAtomValue(pieceSetAtom);
   const isWhiteBottom = boardOrientation === Color.White;
   const { playMove } = useChessActions(gameAtom);
@@ -252,15 +239,11 @@ export default function Board({
     setValidMoves([]);
   }, []);
 
-  const activePieceImages = useMemo(() => {
-    const codes = ['wQ', 'wR', 'wB', 'wN', 'wP', 'wK', 'bQ', 'bR', 'bB', 'bN', 'bP', 'bK'];
-    return codes.reduce((acc, code) => {
-      acc[code] = `/piece/${pieceSet}/${code}.svg`;
-      return acc;
-    }, {});
-  }, [pieceSet]);
+  const activePieceImages = useMemo(() => buildPieceImages(pieceSet), [pieceSet]);
 
-  const boardTheme = useMemo(() => getBoardThemeWithHue(boardHue), [boardHue]);
+  const boardTheme = useMemo(() => {
+    return BOARD_THEME_MAP[boardThemeKey] || BOARD_THEME_MAP['classic-blue'];
+  }, [boardThemeKey]);
 
   const arrowCoordinates = useMemo(() => {
     if (!showBestMoveArrow) return null;

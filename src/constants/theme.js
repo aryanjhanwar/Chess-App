@@ -1,5 +1,6 @@
 // Theme constants for easy customization
 import { toAssetPath } from '../utils/assetPath.js';
+import assetManifest from '../../public/assets/asset-manifest.json';
 
 export const theme = {
   // Main colors
@@ -42,7 +43,7 @@ export const theme = {
 
 export const PIECE_STYLE_TO_SET = {
   neo: 'staunty',
-  classic: 'tatiana',
+  classic: 'default',
   alpha: 'alpha',
   minimal: 'pixel',
 };
@@ -71,12 +72,13 @@ const findBestPieceFile = (files = [], normalizedCode) => {
   return null;
 };
 
-export const buildPieceImages = (pieceSetName = PIECE_STYLE_TO_SET.neo, pieceFiles = null) => {
-  const setName = pieceSetName || PIECE_STYLE_TO_SET.neo;
+export const buildPieceImages = (pieceSetName = PIECE_STYLE_TO_SET.classic, pieceFiles = null) => {
+  const setName = pieceSetName || PIECE_STYLE_TO_SET.classic;
+  const files = pieceFiles || assetManifest.pieceFilesBySet[setName] || [];
   const keys = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bp', 'wR', 'wN', 'wB', 'wQ', 'wK', 'wp'];
   return keys.reduce((acc, key) => {
     const normalizedCode = normalizePieceCode(key);
-    const discovered = findBestPieceFile(pieceFiles, normalizedCode);
+    const discovered = findBestPieceFile(files, normalizedCode);
     acc[key] = discovered
       ? toAssetPath(`piece/${setName}/${discovered}`)
       : toAssetPath(`piece/${setName}/${normalizedCode}.svg`);

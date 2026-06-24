@@ -19,10 +19,6 @@ export default function GameModals({
 
   showAppSettings,
   setShowAppSettings,
-  uiSettings,
-  handleUiSettingsChange,
-  handleApplyThemePreset,
-  handleResetVisualSettings,
   boardSurfaceOptions,
   pieceSetOptions,
 
@@ -67,10 +63,6 @@ export default function GameModals({
       {showAppSettings && (
         <SettingsModal
           onClose={() => setShowAppSettings(false)}
-          uiSettings={uiSettings}
-          onUiSettingsChange={handleUiSettingsChange}
-          onApplyThemePreset={handleApplyThemePreset}
-          onResetVisualSettings={handleResetVisualSettings}
           boardSurfaceOptions={boardSurfaceOptions}
           pieceSetOptions={pieceSetOptions}
         />
@@ -87,8 +79,6 @@ export default function GameModals({
           canEditWhite={!isMultiplayerGame || multiplayerSide === 'w'}
           canEditBlack={!isMultiplayerGame || multiplayerSide === 'b'}
           showReset={!isMultiplayerGame}
-          uiSettings={uiSettings}
-          onUiSettingsChange={handleUiSettingsChange}
           onFlipBoard={() => setIsBoardFlipped((prev) => !prev)}
           onResign={handleResign}
           onOfferDraw={handleOfferDraw}

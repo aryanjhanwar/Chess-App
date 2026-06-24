@@ -8,7 +8,7 @@ export const THEME_PRESETS = [
     boardTheme: 'classic-blue',
     boardSurface: 'none',
     useCustomBoardColors: false,
-    pieceStyle: 'staunty',
+    pieceStyle: 'default',
     backgroundStyle: 'bg-classic',
     swatch: 'linear-gradient(135deg, #eaf2f6 0%, #a8c1cf 48%, #0bb0e5 100%)',
   },

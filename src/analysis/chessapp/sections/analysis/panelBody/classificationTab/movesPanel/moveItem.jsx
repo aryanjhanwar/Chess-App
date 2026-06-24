@@ -4,23 +4,46 @@ import Image from "@analysis/shims/image";
 import { useAtomValue } from "jotai";
 import { boardAtom, currentPositionAtom, gameAtom } from "../../../states";
 import { useChessActions } from "@analysis/hooks/useChessActions";
-import { useEffect } from "react";
+import { memo, useEffect, useRef, useMemo } from "react";
 import { isInViewport } from "@analysis/lib/helpers";
 import PrettyMoveSan from "@analysis/components/prettyMoveSan";
 import { toPublicPath } from "@/utils/assetPath";
-function MoveItem({
+import { selectAtom } from "jotai/utils";
+
+const MoveItem = memo(function MoveItem({
   san,
   moveClassification,
   moveIdx,
-  moveColor
+  moveColor,
 }) {
   const game = useAtomValue(gameAtom);
   const board = useAtomValue(boardAtom);
   const { goToMove } = useChessActions(boardAtom);
-  const position = useAtomValue(currentPositionAtom);
-  const isCurrentMove = position?.currentMoveIdx === moveIdx;
+  
+  const isCurrentMoveAtom = useMemo(() => 
+    selectAtom(currentPositionAtom, (pos) => pos?.currentMoveIdx === moveIdx), 
+  [moveIdx]);
+  const isCurrentMove = useAtomValue(isCurrentMoveAtom);
+  const isScrubbingRef = useRef(false);
+  const lastCallRef = useRef(Date.now());
+
   useEffect(() => {
     if (!isCurrentMove) return;
+    
+    // Auto-detect fast scrubbing
+    const now = Date.now();
+    const timeSinceLast = now - lastCallRef.current;
+    lastCallRef.current = now;
+    
+    if (timeSinceLast < 150) {
+      isScrubbingRef.current = true;
+    } else {
+      isScrubbingRef.current = false;
+    }
+
+    // Skip auto-scroll during rapid scrubbing to prevent stutter
+    if (isScrubbingRef.current) return;
+
     const moveItem = document.getElementById(`move-${moveIdx}`);
     if (!moveItem) return;
     const movePanel = document.getElementById("moves-panel");
@@ -57,8 +80,8 @@ function MoveItem({
           {
             src: toPublicPath(`icons/${moveClassification}.png`),
             alt: "move-icon",
-            width: 14,
-            height: 14,
+            width: 18,
+            height: 18,
             style: {
               maxWidth: "3.5vw",
               maxHeight: "3.5vw"
@@ -76,7 +99,7 @@ function MoveItem({
       ]
     }
   );
-}
+});
 export {
   MoveItem as default
 };

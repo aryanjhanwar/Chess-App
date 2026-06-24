@@ -6,6 +6,13 @@ import {
   PIECE_SET_OPTIONS,
   THEME_PRESETS,
 } from '../constants/uiPresets.js';
+import { useAtomValue, useSetAtom } from 'jotai';
+import {
+  uiSettingsAtom,
+  applyUiSettingsAtom,
+  applyThemePresetAtom,
+  resetVisualSettingsAtom
+} from '../state/themeState.js';
 
 function Section({ icon, title, children, action }) {
   return (
@@ -72,13 +79,14 @@ function PiecePreview({ setName }) {
 
 export default function SettingsModal({
   onClose,
-  uiSettings,
-  onUiSettingsChange,
-  onApplyThemePreset,
-  onResetVisualSettings,
   boardSurfaceOptions,
   pieceSetOptions,
 }) {
+  const uiSettings = useAtomValue(uiSettingsAtom);
+  const onUiSettingsChange = useSetAtom(applyUiSettingsAtom);
+  const onApplyThemePreset = useSetAtom(applyThemePresetAtom);
+  const onResetVisualSettings = useSetAtom(resetVisualSettingsAtom);
+
   const applyPartial = (patch) => onUiSettingsChange?.(patch);
   const resolvedBoardSurfaceOptions = Array.isArray(boardSurfaceOptions) && boardSurfaceOptions.length
     ? boardSurfaceOptions
