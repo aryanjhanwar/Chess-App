@@ -29,6 +29,10 @@ export const isEngineSupported = (engineProfile) => {
     case 'stockfish-16_1-lite':
     case 'stockfish-17':
     case 'stockfish-17-lite':
+    case 'stockfish-17_1':
+    case 'stockfish-17_1-lite':
+    case 'stockfish-18':
+    case 'stockfish-18-lite':
     case 'auto':
     default:
       return isWasmSupported();

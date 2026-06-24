@@ -14,6 +14,8 @@ import { Stockfish11 } from './stockfish11.js';
 import { Stockfish16 } from './stockfish16.js';
 import { Stockfish16_1 } from './stockfish16_1.js';
 import { Stockfish17 } from './stockfish17.js';
+import { Stockfish17_1 } from './stockfish17_1.js';
+import { Stockfish18 } from './stockfish18.js';
 import { isEngineSupported } from './shared.js';
 import {
   getEngineWorker,
@@ -85,6 +87,10 @@ export class UciEngine {
     const map = {
       auto: {
         candidates: [
+          ...Stockfish18.getCandidates(true),
+          ...Stockfish18.getCandidates(false),
+          ...Stockfish17_1.getCandidates(true),
+          ...Stockfish17_1.getCandidates(false),
           ...Stockfish17.getCandidates(true),
           ...Stockfish17.getCandidates(false),
           ...Stockfish16_1.getCandidates(true),
@@ -94,6 +100,10 @@ export class UciEngine {
         ],
         setup: [],
       },
+      'stockfish-18-lite': { candidates: Stockfish18.getCandidates(true), setup: [] },
+      'stockfish-18': { candidates: Stockfish18.getCandidates(false), setup: [] },
+      'stockfish-17_1-lite': { candidates: Stockfish17_1.getCandidates(true), setup: [] },
+      'stockfish-17_1': { candidates: Stockfish17_1.getCandidates(false), setup: [] },
       'stockfish-17-lite': { candidates: Stockfish17.getCandidates(true), setup: [] },
       'stockfish-17': { candidates: Stockfish17.getCandidates(false), setup: [] },
       'stockfish-16_1-lite': { candidates: Stockfish16_1.getCandidates(true), setup: [] },

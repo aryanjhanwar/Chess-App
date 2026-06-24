@@ -16,6 +16,26 @@ const CLASSIFICATION_COLORS = {
 const DEFAULT_ENGINE = EngineName.Stockfish17Lite;
 const STRONGEST_ENGINE = EngineName.Stockfish17;
 const ENGINE_LABELS = {
+  [EngineName.Stockfish18]: {
+    full: "Stockfish 18 (108MB)",
+    small: "Stockfish 18",
+    sizeMb: 108
+  },
+  [EngineName.Stockfish18Lite]: {
+    full: "Stockfish 18 Lite (7MB)",
+    small: "Stockfish 18 Lite",
+    sizeMb: 7
+  },
+  [EngineName.Stockfish17_1]: {
+    full: "Stockfish 17.1 (75MB)",
+    small: "Stockfish 17.1",
+    sizeMb: 75
+  },
+  [EngineName.Stockfish17_1Lite]: {
+    full: "Stockfish 17.1 Lite (7MB)",
+    small: "Stockfish 17.1 Lite",
+    sizeMb: 7
+  },
   [EngineName.Stockfish17]: {
     full: "Stockfish 17 (75MB)",
     small: "Stockfish 17",

@@ -5,6 +5,10 @@ var GameOrigin = /* @__PURE__ */ ((GameOrigin2) => {
   return GameOrigin2;
 })(GameOrigin || {});
 var EngineName = /* @__PURE__ */ ((EngineName2) => {
+  EngineName2["Stockfish18"] = "stockfish_18";
+  EngineName2["Stockfish18Lite"] = "stockfish_18_lite";
+  EngineName2["Stockfish17_1"] = "stockfish_17_1";
+  EngineName2["Stockfish17_1Lite"] = "stockfish_17_1_lite";
   EngineName2["Stockfish17"] = "stockfish_17";
   EngineName2["Stockfish17Lite"] = "stockfish_17_lite";
   EngineName2["Stockfish16_1"] = "stockfish_16_1";
