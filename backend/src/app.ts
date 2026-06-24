@@ -8,6 +8,7 @@ import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/user.routes';
 import { errorMiddleware } from './middleware/error.middleware';
 
+
 /**
  * Express application factory.
  * Returns a configured app WITHOUT starting the server.

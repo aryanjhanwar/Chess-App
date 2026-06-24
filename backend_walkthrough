@@ -1,0 +1,120 @@
+# Production Backend — Implementation Walkthrough
+
+## What Was Built
+
+A complete production-quality TypeScript backend in `backend/` — a full replacement for the old `server/` JavaScript skeleton.
+
+---
+
+## Final Folder Structure
+
+```
+backend/
+├── src/
+│   ├── config/
+│   │   ├── environment.ts      ← Fail-fast env validation
+│   │   └── database.ts         ← MongoDB connection
+│   │
+│   ├── modules/
+│   │   ├── auth/               ← Register, login, JWT
+│   │   ├── users/              ← Profile management
+│   │   ├── matchmaking/        ← Queue + match creation
+│   │   └── games/              ← Game state + move validation
+│   │
+│   ├── sockets/
+│   │   ├── events/             ← Event name constants
+│   │   ├── middleware/         ← JWT auth on handshake
+│   │   ├── handlers/           ← Queue + game event handlers
+│   │   ├── stores/             ← OnlineUserStore
+│   │   └── socket.gateway.ts   ← Single connection entry point
+│   │
+│   ├── middleware/
+│   │   ├── auth.middleware.ts  ← Express JWT guard
+│   │   ├── validate.middleware ← Zod schema validator
+│   │   └── error.middleware.ts ← Centralized error handler
+│   │
+│   ├── shared/
+│   │   ├── constants/          ← HTTP status codes
+│   │   ├── errors/             ← AppError class
+│   │   ├── utils/              ← Response helpers, crypto
+│   │   ├── types/              ← Express req.user augment
+│   │   └── logger/             ← Pino structured logger
+│   │
+│   ├── app.ts                  ← Express factory
+│   └── server.ts               ← Entry point
+│
+├── .env                        ← Fill in secrets!
+├── .env.example                ← Template (safe to commit)
+├── package.json
+└── tsconfig.json
+```
+
+---
+
+## How to Start
+
+### 1. Fill in your `.env`
+```
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=<run: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
+```
+
+### 2. Run in dev mode
+```bash
+cd backend
+npm run dev
+```
+
+### 3. Health check
+```
+GET http://localhost:5001/api/health
+```
+
+---
+
+## API Endpoints
+
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | ❌ | Register new user |
+| POST | `/api/auth/login` | ❌ | Login, receive JWT |
+| GET | `/api/users/me` | ✅ | Get own profile |
+| PATCH | `/api/users/profile` | ✅ | Update username/avatar |
+| GET | `/api/health` | ❌ | Health check |
+
+---
+
+## Socket Events
+
+| Event | Direction | Description |
+|---|---|---|
+| `queue:join` | Client → Server | Enter matchmaking |
+| `queue:leave` | Client → Server | Cancel matchmaking |
+| `queue:joined` | Server → Client | Confirmation |
+| `match:found` | Server → Client | Room + color assigned |
+| `game:move` | Client → Server | Submit move |
+| `game:update` | Server → Client | New FEN + state |
+| `game:over` | Server → Client | Result + ratings |
+| `game:state` | Server → Client | Full state (reconnect) |
+| `game:resign` | Client → Server | Forfeit |
+| `online:update` | Server → All | Online count |
+
+**Socket auth:** Pass JWT in `socket.handshake.auth.token`
+
+---
+
+## Key Security Properties
+
+- Passwords hashed with bcrypt (12 rounds)  
+- JWT verified on every request AND every socket connection  
+- User identity **only** from JWT — never from client payload  
+- Move legality validated server-side with chess.js  
+- Auth endpoints rate-limited to 10 req / 15 min
+- `passwordHash` never appears in any API response (Mongoose transform)
+- Body size limited to 10kb
+- Helmet security headers applied
+- NoSQL injection sanitization active
+
+## TypeScript Build Status
+
+✅ `npx tsc --noEmit` — **0 errors** with strict mode enabled

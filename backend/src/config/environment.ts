@@ -2,7 +2,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load .env before anything else
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const envPath = path.resolve(__dirname, '../../.env');
+
+console.log('Loading ENV from:', envPath);
+
+dotenv.config({ path: envPath });
+
+console.log('Loaded MONGODB_URI:', process.env.MONGODB_URI);
 
 /**
  * Environment configuration with validation.

@@ -1,4 +1,8 @@
 {
+  "ts-node": {
+    "files": true,
+    "transpileOnly": false
+  },
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
@@ -27,6 +31,6 @@
       "@shared/*": ["shared/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/shared/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

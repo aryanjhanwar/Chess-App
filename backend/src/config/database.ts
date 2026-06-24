@@ -9,8 +9,10 @@ import logger from '../shared/logger/logger';
  */
 export async function connectDatabase(): Promise<void> {
   try {
+    console.log('Mongo URI:', env.MONGODB_URI);
+
     await mongoose.connect(env.MONGODB_URI, {
-      maxPoolSize: 10,   // Maintain up to 10 socket connections
+      maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });

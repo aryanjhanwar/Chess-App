@@ -46,12 +46,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/**
- * Convert algebraic notation (e.g. 'e2') to a visual row/col grid coordinate.
- * Row 0 = top (rank 8), col 0 = left (file a).
- * @param {string} square - Two-character algebraic square (e.g. 'e2').
- * @returns {{ row: number, col: number }}
- */
 function algebraicToGrid(square) {
   if (!square || square.length < 2) return null;
   const col = square.charCodeAt(0) - 97;
@@ -59,16 +53,11 @@ function algebraicToGrid(square) {
   return { row, col };
 }
 
-/**
- * Render SVG best-move arrows overlaid on the board.
- * Each arrow is an object: { from: string, to: string, color: string }
- * where `from`/`to` are algebraic squares (e.g. 'e2', 'e4').
- */
 function ArrowLayer({ arrows, boardSize, isFlipped }) {
   if (!arrows || arrows.length === 0) return null;
 
   const sqSize = boardSize / 8;
-  const r = sqSize * 0.12; // arrowhead half-width
+  const r = sqSize * 0.12; 
 
   return (
     <svg
@@ -106,7 +95,6 @@ function ArrowLayer({ arrows, boardSize, isFlipped }) {
         const toGrid   = algebraicToGrid(arrow.to);
         if (!fromGrid || !toGrid) return null;
 
-        // Flip coordinates if board is flipped (Black on bottom)
         const fromRow = isFlipped ? 7 - fromGrid.row : fromGrid.row;
         const fromCol = isFlipped ? 7 - fromGrid.col : fromGrid.col;
         const toRow   = isFlipped ? 7 - toGrid.row   : toGrid.row;
@@ -117,7 +105,6 @@ function ArrowLayer({ arrows, boardSize, isFlipped }) {
         const x2 = toCol   * sqSize + sqSize * 0.5;
         const y2 = toRow   * sqSize + sqSize * 0.5;
 
-        // Shorten line so it doesn't overlap the arrowhead
         const dx = x2 - x1;
         const dy = y2 - y1;
         const len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -125,138 +112,33 @@ function ArrowLayer({ arrows, boardSize, isFlipped }) {
         const y2s = y2 - (dy / len) * sqSize * 0.32;
 
         return (
-          <g key={`arrow-group-${i}`}>
-            <line
-              x1={x1}
-              y1={y1}
-              x2={x2s}
-              y2={y2s}
-              stroke="white"
-              strokeWidth={r * 2.2}
-              strokeLinecap="round"
-              opacity="0.9"
-            />
-            <line
-              key={`arrow-${i}`}
-              x1={x1}
-              y1={y1}
-              x2={x2s}
-              y2={y2s}
-              stroke={arrow.color || 'rgba(0,150,255,0.9)'}
-              strokeWidth={r * 1.7}
-              strokeLinecap="round"
-              markerEnd={`url(#arrowhead-${i})`}
-              opacity="0.95"
-            />
-          </g>
+          <line
+            key={`arrow-${i}`}
+            x1={x1}
+            y1={y1}
+            x2={x2s}
+            y2={y2s}
+            stroke={arrow.color || 'rgba(0,150,255,0.75)'}
+            strokeWidth={r * 1.7}
+            strokeLinecap="round"
+            markerEnd={`url(#arrowhead-${i})`}
+            opacity="0.82"
+          />
         );
       })}
     </svg>
   );
 }
 
-
-function usePieceMap(board) {
-  const piecesRef = useRef(new Map());
-  const prevBoardRef = useRef(null);
-  
-  const currentBoard = board;
-  
-  if (prevBoardRef.current !== currentBoard) {
-     const oldBoard = prevBoardRef.current;
-     if (!oldBoard) {
-       currentBoard.forEach((row, r) => row.forEach((p, c) => {
-         if (p) {
-           const id = `${p}-${Math.random()}`;
-           piecesRef.current.set(id, { id, type: p, row: r, col: c });
-         }
-       }));
-     } else {
-       const oldPieces = [];
-       const newPieces = [];
-       
-       for (let r=0; r<8; r++) {
-         for (let c=0; c<8; c++) {
-           const oldP = oldBoard[r][c];
-           const newP = currentBoard[r][c];
-           if (oldP !== newP) {
-             if (oldP) oldPieces.push({ type: oldP, row: r, col: c });
-             if (newP) newPieces.push({ type: newP, row: r, col: c });
-           }
-         }
-       }
-       
-       if (oldPieces.length > 4 || (oldPieces.length === 0 && newPieces.length > 0)) {
-         piecesRef.current.clear();
-         currentBoard.forEach((row, r) => row.forEach((p, c) => {
-           if (p) {
-             const id = `${p}-${Math.random()}`;
-             piecesRef.current.set(id, { id, type: p, row: r, col: c });
-           }
-         }));
-       } else {
-         const matchedNewIndices = new Set();
-         const movedPieces = [];
-         
-         oldPieces.forEach(oldP => {
-           const matchIdx = newPieces.findIndex((newP, i) => !matchedNewIndices.has(i) && newP.type === oldP.type);
-           if (matchIdx !== -1) {
-             matchedNewIndices.add(matchIdx);
-             movedPieces.push({ old: oldP, new: newPieces[matchIdx] });
-           } else {
-             movedPieces.push({ old: oldP, new: null });
-           }
-         });
-         
-         newPieces.forEach((newP, i) => {
-           if (!matchedNewIndices.has(i)) {
-             movedPieces.push({ old: null, new: newP });
-           }
-         });
-         
-         movedPieces.forEach(({ old: oldP, new: newP }) => {
-           if (oldP && newP) {
-             let foundId = null;
-             for (const [id, p] of piecesRef.current.entries()) {
-               if (p.row === oldP.row && p.col === oldP.col && p.type === oldP.type) {
-                 foundId = id; break;
-               }
-             }
-             if (foundId) {
-               const p = piecesRef.current.get(foundId);
-               p.row = newP.row;
-               p.col = newP.col;
-               p.type = newP.type;
-             }
-           } else if (oldP && !newP) {
-             let foundId = null;
-             for (const [id, p] of piecesRef.current.entries()) {
-               if (p.row === oldP.row && p.col === oldP.col && p.type === oldP.type) {
-                 foundId = id; break;
-               }
-             }
-             if (foundId) piecesRef.current.delete(foundId);
-           } else if (!oldP && newP) {
-             const id = `${newP.type}-${Math.random()}`;
-             piecesRef.current.set(id, { id, type: newP.type, row: newP.row, col: newP.col });
-           }
-         });
-       }
-     }
-     prevBoardRef.current = currentBoard;
-  }
-  
-  return Array.from(piecesRef.current.values());
-}
-
 const NOOP = () => {};
 
-// Memoized Square component - only re-renders when its props change
 const Square = memo(({ 
   rowIndex, 
   colIndex, 
   piece, 
-  bgStyle,
+  bgColor,
+  hasBoardImage,
+  isKingInCheck,
   showCoordinates,
   rankLabel,
   fileLabel,
@@ -284,8 +166,35 @@ const Square = memo(({
       onTouchStart={(e) => onMouseDown(e, rowIndex, colIndex, piece)}
       onTouchEnd={(e) => onMouseUp(e, rowIndex, colIndex)}
       className={`w-full h-full flex items-center justify-center cursor-pointer relative`}
-      style={{ ...bgStyle }}
+      style={{
+        backgroundColor: hasBoardImage ? hexToRgba(bgColor, 0.72) : bgColor,
+        animation: isKingInCheck ? 'pulse 1.2s infinite' : 'none',
+      }}
     >
+      {piece && (
+        <img 
+          src={activePieceImages[piece] || defaultPieceImages[piece]} 
+          alt={piece}
+          className={`absolute inset-[7.5%] w-[85%] h-[85%] z-10 object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
+          draggable="false"
+          style={{
+            pointerEvents: 'none',
+            transition: pieceAnimation
+              ? 'opacity 0.12s ease-out, transform 0.16s ease-out'
+              : 'none'
+          }}
+          onError={(event) => {
+            const element = event.currentTarget;
+            const currentTry = Number(element.dataset.fallbackTry || 0);
+            const fallback = currentTry === 0
+              ? getPngFallbackFromSvg(element.src) || getNextPieceFallback(element.src, currentTry)
+              : getNextPieceFallback(element.src, currentTry);
+            if (!fallback) return;
+            element.dataset.fallbackTry = String(currentTry + 1);
+            element.src = fallback;
+          }}
+        />
+      )}
       {showAnalysisMoveIcon && isLastMoveTo && moveClassification && (
         <img
           src={toPublicPath(`icons/${moveClassification}.png`)}
@@ -301,12 +210,12 @@ const Square = memo(({
         <div className="absolute inset-0 rounded-full border-[6px] border-red-500 pointer-events-none opacity-80 z-20"></div>
       )}
       {showCoordinates && colIndex === 0 && (
-        <span className={`absolute left-1 top-0.5 text-[11px] font-bold ${isDarkSquare ? 'text-white/80' : 'text-black/70'} pointer-events-none z-20`}>
+        <span className={`absolute left-1.5 top-1 text-[11px] font-bold ${isDarkSquare ? 'text-white/80' : 'text-black/70'} pointer-events-none z-20`}>
           {rankLabel}
         </span>
       )}
       {showCoordinates && rowIndex === 7 && (
-        <span className={`absolute right-1 bottom-0 text-[11px] font-bold ${isDarkSquare ? 'text-white/80' : 'text-black/70'} pointer-events-none z-20`}>
+        <span className={`absolute right-1.5 bottom-1 text-[11px] font-bold ${isDarkSquare ? 'text-white/80' : 'text-black/70'} pointer-events-none uppercase z-20`}>
           {fileLabel}
         </span>
       )}
@@ -350,53 +259,13 @@ export default function ChessBoardView({
   promotionSquare,
   onPromotion,
   onCancel,
-  /**
-   * Analysis arrow overlays.
-   * Array of { from: string, to: string, color?: string }
-   * where from/to are algebraic squares (e.g. 'e2', 'e4').
-   */
   arrows = [],
-  /**
-   * Whether the board is flipped (Black playing from bottom).
-   * Required for correct arrow coordinate mapping.
-   */
   isFlipped = false,
-  /**
-   * Optional CSS filter to apply to the whole board wrapper
-   * (e.g. 'hue-rotate(45deg)' for analysis board theming).
-   */
   boardStyle = {},
 }) {
   const boardRef2 = useRef(null);
   const [boardPixelSize, setBoardPixelSize] = useState(400);
 
-  // Fast Scrubbing Auto-Detect
-  const lastBoardUpdateRef = useRef(Date.now());
-  const isScrubbingRef = useRef(false);
-  const scrubTimeoutRef = useRef(null);
-  const prevBoardPropRef = useRef(board);
-
-  if (board !== prevBoardPropRef.current) {
-    const now = Date.now();
-    if (now - lastBoardUpdateRef.current < 180) {
-      isScrubbingRef.current = true;
-    }
-    lastBoardUpdateRef.current = now;
-    prevBoardPropRef.current = board;
-  }
-
-  useEffect(() => {
-    if (isScrubbingRef.current) {
-      if (scrubTimeoutRef.current) clearTimeout(scrubTimeoutRef.current);
-      scrubTimeoutRef.current = setTimeout(() => {
-        isScrubbingRef.current = false;
-      }, 200);
-    }
-  });
-
-  const activePieceAnimation = pieceAnimation && !isScrubbingRef.current;
-
-  const mappedPieces = usePieceMap(board);
   useEffect(() => {
     if (!boardRef2.current) return;
     const ro = new ResizeObserver(([entry]) => {
@@ -422,7 +291,6 @@ export default function ChessBoardView({
     isReviewMode
   });
 
-  // Add global mouse and touch event listeners
   useEffect(() => {
     if (!enableDrag) return;
 
@@ -444,14 +312,12 @@ export default function ChessBoardView({
     };
   }, [enableDrag, handleMouseMove, handleMouseUpGlobal]);
 
-  // Memoize valid moves Set for O(1) lookup
   const validMoveSet = useMemo(() => {
     const set = new Set();
     validMoves.forEach(move => set.add(`${move.row}-${move.col}`));
     return set;
   }, [validMoves]);
 
-  // Memoize last move Set
   const lastMoveSet = useMemo(() => {
     const set = new Set();
     if (lastMove?.from) set.add(`${lastMove.from.row}-${lastMove.from.col}`);
@@ -489,7 +355,6 @@ export default function ChessBoardView({
                                    dragState.fromRow === rowIndex && 
                                    dragState.fromCol === colIndex;
             
-            // Determine background color
             let bgColor;
             if (isKingInCheck) {
               bgColor = '#ef4444';
@@ -498,11 +363,6 @@ export default function ChessBoardView({
             } else {
               bgColor = isDark ? boardTheme.dark : boardTheme.light;
             }
-
-            const bgStyle = {
-              backgroundColor: boardTheme.boardImage ? hexToRgba(bgColor, 0.72) : bgColor,
-              animation: isKingInCheck ? 'pulse 1.2s infinite' : 'none',
-            };
             
             return (
               <Square
@@ -510,7 +370,9 @@ export default function ChessBoardView({
                 rowIndex={rowIndex}
                 colIndex={colIndex}
                 piece={piece}
-                bgStyle={bgStyle}
+                bgColor={bgColor}
+                hasBoardImage={!!boardTheme.boardImage}
+                isKingInCheck={isKingInCheck}
                 showCoordinates={showCoordinates}
                 rankLabel={rankLabels?.[rowIndex]}
                 fileLabel={fileLabels?.[colIndex]}
@@ -520,7 +382,7 @@ export default function ChessBoardView({
                 moveClassification={moveClassification}
                 showAnalysisMoveIcon={showAnalysisMoveIcon}
                 isBeingDragged={isBeingDragged}
-                pieceAnimation={activePieceAnimation}
+                pieceAnimation={pieceAnimation}
                 compactMode={compactMode}
                 activePieceImages={activePieceImages}
                 onSquareClick={onSquareClick}
@@ -532,50 +394,12 @@ export default function ChessBoardView({
           })
         )}
 
-        {/* PIECES LAYER */}
-        {mappedPieces.map((p) => {
-          const isBeingDragged = dragState.isDragging && dragState.fromRow === p.row && dragState.fromCol === p.col;
-          const isSelected = selectedSquare?.row === p.row && selectedSquare?.col === p.col;
-          return (
-            <div
-              key={p.id}
-              className="absolute w-[12.5%] h-[12.5%] z-10 pointer-events-none flex items-center justify-center"
-              style={{
-                transform: `translate(${p.col * 100}%, ${p.row * 100}%)`,
-                transition: activePieceAnimation && !isBeingDragged ? 'transform 0.16s ease-out' : 'none'
-              }}
-            >
-               <img
-                  src={activePieceImages[p.type] || defaultPieceImages[p.type]} 
-                  alt=""
-                  className={`w-[85%] h-[85%] object-contain select-none ${isBeingDragged ? 'opacity-30' : ''} ${isSelected && !isBeingDragged ? 'scale-110' : ''}`}
-                  draggable="false"
-                  style={{
-                    transition: activePieceAnimation ? 'opacity 0.12s ease-out, transform 0.16s ease-out' : 'none'
-                  }}
-                  onError={(event) => {
-                    const element = event.currentTarget;
-                    const currentTry = Number(element.dataset.fallbackTry || 0);
-                    const fallback = currentTry === 0
-                      ? getPngFallbackFromSvg(element.src) || getNextPieceFallback(element.src, currentTry)
-                      : getNextPieceFallback(element.src, currentTry);
-                    if (!fallback) return;
-                    element.dataset.fallbackTry = String(currentTry + 1);
-                    element.src = fallback;
-                  }}
-               />
-            </div>
-          );
-        })}
-
-        {/* SVG Arrow overlay for analysis best-move indicators */}
         <ArrowLayer arrows={arrows} boardSize={boardPixelSize} isFlipped={isFlipped} />
       </div>
 
-      {/* Floating drag piece layer */}
       {enableDrag && dragState.isDragging && dragState.piece && (
         <div
-          className="fixed pointer-events-none z-9999"
+          className="fixed pointer-events-none z-[9999]"
           style={{
             left: dragState.currentX - 35,
             top: dragState.currentY - 35,
@@ -585,12 +409,12 @@ export default function ChessBoardView({
             willChange: 'transform'
           }}
         >
-           <img
+          <img
             src={activePieceImages[dragState.piece] || defaultPieceImages[dragState.piece]}
-            alt=""
+            alt={dragState.piece}
             className="w-[115%] h-[115%] object-contain select-none drop-shadow-2xl"
             draggable="false"
-            style={{ margin: '-5%', pointerEvents: 'none', transition: dragAnimation ? 'transform 0.08s linear' : 'none' }}
+            style={{ margin: '8px', pointerEvents: 'none', transition: dragAnimation ? 'transform 0.08s linear' : 'none' }}
             onError={(event) => {
               const element = event.currentTarget;
               const currentTry = Number(element.dataset.fallbackTry || 0);

@@ -71,8 +71,7 @@ const userSchema = new Schema<IUser>(
   },
 );
 
-// Index for fast user lookup by email (used on every login)
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// Indexes are created automatically from `unique: true` in field definitions above.
+// No explicit schema.index() needed — adding them would create duplicates.
 
 export const UserModel = model<IUser>('User', userSchema);

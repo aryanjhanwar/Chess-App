@@ -6,6 +6,13 @@ import { initializeSocketGateway } from './sockets/socket.gateway';
 import { env } from './config/environment';
 import logger from './shared/logger/logger';
 
+import dns from "dns";
+
+dns.setServers([
+  "8.8.8.8",
+  "8.8.4.4"
+]);
+
 /**
  * Server entry point.
  *

@@ -19,12 +19,12 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      fetch('http://localhost:5000/api/auth/me', {
+      fetch('http://localhost:5001/api/users/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
       .then(data => {
-        if (data.status === 'success') {
+        if (data.success) {
           setCurrentUser({
             id: data.data._id,
             name: data.data.username,
